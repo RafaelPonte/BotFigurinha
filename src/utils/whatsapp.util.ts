@@ -260,13 +260,17 @@ export async function formatWAMessage(m: WAMessage, group: Group|null, hostId: s
     const botAdmins = await userController.getAdmins()
     const contextInfo : proto.IContextInfo | undefined  = (typeof m.message[type] != "string" && m.message[type] && "contextInfo" in m.message[type]) ? m.message[type].contextInfo as proto.IContextInfo: undefined
     const isQuoted = (contextInfo?.quotedMessage) ? true : false
-    const sender = (m.key.fromMe) ? hostId : m.key.participant || m.key.remoteJid
+    const isGroupMsg = m.key.remoteJid?.includes("@g.us") ?? false
+    // Fix: Ensure sender is always a valid user ID, not a group ID
+    // In group messages: use participant, in private messages: use remoteJid
+    const sender = (m.key.fromMe)
+        ? hostId
+        : (isGroupMsg ? m.key.participant : m.key.remoteJid)
     const pushName = m.pushName
     const body =  m.message.conversation ||  m.message.extendedTextMessage?.text || undefined
     const caption = (typeof m.message[type] != "string" && m.message[type] && "caption" in m.message[type]) ? m.message[type].caption as string | null: undefined
     const text =  caption || body || ''
     const [command, ...args] = text.trim().split(" ")
-    const isGroupMsg = m.key.remoteJid?.includes("@g.us") ?? false
     const message_id = m.key.id
     const t = m.messageTimestamp as number
     const chat_id = m.key.remoteJid
