@@ -263,6 +263,7 @@ Se encontrar algum problema:
 
 - **Desenvolvedor Original**: Leal (victorsouzaleal)
 - **Atualização 3.5.0**: Atualização técnica e correção de dependências
+- **Atualizado por**: RafaelPonte
 - **Biblioteca WhatsApp**: Baileys (WhiskeySockets)
 
 ---

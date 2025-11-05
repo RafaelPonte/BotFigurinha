@@ -14,7 +14,7 @@
     "build": "yarn clean && tsc && yarn copy-media",
     "zip": "yarn build && bestzip LBOT-v$npm_package_version.zip dist package.json LICENSE yarn.lock"
   },
-  "author": "Leal",
+  "author": "RafaelPonte",
   "license": "GPL-3.0-only",
   "repository": "git+https://github.com/victorsouzaleal/lbot-whatsapp.git",
   "keywords": [
