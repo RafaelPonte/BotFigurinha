@@ -96,11 +96,13 @@ export async function commandInvoker(client: WASocket, botInfo: Bot, message: Me
                 break
             default:
                 //Outros - Autosticker
-                if ((message.isGroupMsg && group?.autosticker) || (!message.isGroupMsg && botInfo.autosticker)){
+                // Only execute autosticker if it's NOT a command (to prevent duplication)
+                const isCommand = categoryCommand !== null
+                if (!isCommand && ((message.isGroupMsg && group?.autosticker) || (!message.isGroupMsg && botInfo.autosticker))){
                     await autoSticker(client, botInfo, message, group || undefined)
                     showCommandConsole(message.isGroupMsg, "STICKER", "AUTO-STICKER", "#ae45d1", message.t, message.pushname, group?.name)
                 }
-                
+
                 break
         }
     } catch(err: any){
