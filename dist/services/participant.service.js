@@ -25,19 +25,26 @@ export class ParticipantService {
     async syncParticipants(groupMeta) {
         //Adiciona participantes no banco de dados que entraram enquanto o bot estava off.
         groupMeta.participants.forEach(async (participant) => {
+            // Baileys 7 Fix: Use phoneNumber instead of id (which is LID)
+            // participant.id = LID (85014633046192@lid) ❌
+            // participant.phoneNumber = Real phone number (558599294567@s.whatsapp.net) ✅
+            const participantId = participant.phoneNumber || participant.id;
             const isAdmin = (participant.admin) ? true : false;
-            const isGroupParticipant = await this.isGroupParticipant(groupMeta.id, participant.id);
+            const isGroupParticipant = await this.isGroupParticipant(groupMeta.id, participantId);
             if (!isGroupParticipant) {
-                await this.addParticipant(groupMeta.id, participant.id, isAdmin);
+                await this.addParticipant(groupMeta.id, participantId, isAdmin);
             }
             else {
-                await db.updateAsync({ group_id: groupMeta.id, user_id: participant.id }, { $set: { admin: isAdmin } });
+                await db.updateAsync({ group_id: groupMeta.id, user_id: participantId }, { $set: { admin: isAdmin } });
             }
         });
         //Remove participantes do banco de dados que sairam do grupo enquanto o bot estava off.
         const currentParticipants = await this.getParticipantsFromGroup(groupMeta.id);
         currentParticipants.forEach(async (participant) => {
-            if (!groupMeta.participants.find(groupMetaParticipant => groupMetaParticipant.id == participant.user_id)) {
+            if (!groupMeta.participants.find(groupMetaParticipant => {
+                const metaParticipantId = groupMetaParticipant.phoneNumber || groupMetaParticipant.id;
+                return metaParticipantId == participant.user_id;
+            })) {
                 await this.removeParticipant(groupMeta.id, participant.user_id);
             }
         });

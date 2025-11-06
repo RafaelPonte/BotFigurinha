@@ -8,6 +8,7 @@ export async function messageReceived(client, messages, botInfo, messageCache) {
     try {
         if (messages.messages[0].key.fromMe) {
             storeMessageOnCache(messages.messages[0], messageCache);
+            return;
         }
         switch (messages.type) {
             case 'notify':
@@ -16,6 +17,16 @@ export async function messageReceived(client, messages, botInfo, messageCache) {
                 const idChat = messages.messages[0].key.remoteJid;
                 const isGroupMsg = idChat?.includes("@g.us");
                 const group = (isGroupMsg && idChat) ? await groupController.getGroup(idChat) : null;
+                // If group not found in database, sync it automatically
+                if (isGroupMsg && !group && idChat) {
+                    try {
+                        const groupMetadata = await client.groupMetadata(idChat);
+                        await groupController.registerGroup(groupMetadata);
+                    }
+                    catch (err) {
+                        // Group sync failed, skip processing
+                    }
+                }
                 let message = await formatWAMessage(messages.messages[0], group, botInfo.host_number);
                 if (message) {
                     await userController.registerUser(message.sender, message.pushname);

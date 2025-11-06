@@ -1,4 +1,4 @@
-import { GroupMetadata, WAMessage, WAPresence, WASocket, S_WHATSAPP_NET, generateWAMessageFromContent, getContentType, proto } from "baileys"
+import { GroupMetadata, WAMessage, WAPresence, WASocket, S_WHATSAPP_NET, generateWAMessageFromContent, getContentType, proto, jidNormalizedUser } from "baileys"
 import { buildText, randomDelay } from "./general.util.js"
 import { MessageOptions, MessageTypes, Message } from "../interfaces/message.interface.js"
 import * as convertLibrary from './convert.util.js'
@@ -238,9 +238,10 @@ export async function demoteParticipant(client: WASocket, groupId: string, parti
 }
 
 export function storeMessageOnCache(message : proto.IWebMessageInfo, messageCache : NodeCache){
-    if (message.key.remoteJid && message.key.id && message.message){
+    // Baileys 7: message.key can be null/undefined
+    if (message.key && message.key.remoteJid && message.key.id && message.message){
         messageCache.set(message.key.id, message.message)
-    }    
+    }
 }
 
 export function getMessageFromCache(messageId: string, messageCache: NodeCache){
@@ -251,24 +252,40 @@ export function getMessageFromCache(messageId: string, messageCache: NodeCache){
 export async function formatWAMessage(m: WAMessage, group: Group|null, hostId: string){
     if (!m.message) return
 
-    const type = getContentType(m.message)
+    // Baileys 7 Fix: Handle ephemeral (temporary) messages
+    // When a group has temporary messages enabled, messages come wrapped in ephemeralMessage
+    let actualMessage = m.message
+    if (m.message.ephemeralMessage?.message) {
+        actualMessage = m.message.ephemeralMessage.message
+    }
 
-    if (!type || !isAllowedType(type) || !m.message[type]) return
+    const type = getContentType(actualMessage)
+
+    if (!type || !isAllowedType(type) || !actualMessage[type]) return
 
     const groupController = new GroupController()
     const userController = new UserController()
     const botAdmins = await userController.getAdmins()
-    const contextInfo : proto.IContextInfo | undefined  = (typeof m.message[type] != "string" && m.message[type] && "contextInfo" in m.message[type]) ? m.message[type].contextInfo as proto.IContextInfo: undefined
+    const contextInfo : proto.IContextInfo | undefined  = (typeof actualMessage[type] != "string" && actualMessage[type] && "contextInfo" in actualMessage[type]) ? actualMessage[type].contextInfo as proto.IContextInfo: undefined
     const isQuoted = (contextInfo?.quotedMessage) ? true : false
     const isGroupMsg = m.key.remoteJid?.includes("@g.us") ?? false
-    // Fix: Ensure sender is always a valid user ID, not a group ID
-    // In group messages: use participant, in private messages: use remoteJid
-    const sender = (m.key.fromMe)
-        ? hostId
-        : (isGroupMsg ? m.key.participant : m.key.remoteJid)
+
+    // Baileys 7 Fix: Extract sender correctly for group messages
+    // In Baileys 7, m.key.participant contains LID (@lid) which doesn't work for database lookups
+    // The real phone number is in m.key.participantAlt (@s.whatsapp.net)
+    let sender: string | undefined
+
+    if (m.key.fromMe) {
+        sender = hostId
+    } else if (isGroupMsg) {
+        sender = (m.key as any).participantAlt || m.key.participant || m.key.remoteJid
+    } else {
+        sender = m.key.remoteJid || undefined
+    }
+
     const pushName = m.pushName
-    const body =  m.message.conversation ||  m.message.extendedTextMessage?.text || undefined
-    const caption = (typeof m.message[type] != "string" && m.message[type] && "caption" in m.message[type]) ? m.message[type].caption as string | null: undefined
+    const body =  actualMessage.conversation ||  actualMessage.extendedTextMessage?.text || undefined
+    const caption = (typeof actualMessage[type] != "string" && actualMessage[type] && "caption" in actualMessage[type]) ? actualMessage[type].caption as string | null: undefined
     const text =  caption || body || ''
     const [command, ...args] = text.trim().split(" ")
     const message_id = m.key.id
@@ -286,7 +303,7 @@ export async function formatWAMessage(m: WAMessage, group: Group|null, hostId: s
         chat_id,
         expiration : contextInfo?.expiration || undefined,
         pushname: pushName || '',
-        body: m.message.conversation || m.message.extendedTextMessage?.text || '',
+        body: actualMessage.conversation || actualMessage.extendedTextMessage?.text || '',
         caption : caption || '',
         mentioned: contextInfo?.mentionedJid || [],
         text_command: args?.join(" ").trim() || '',
@@ -304,10 +321,10 @@ export async function formatWAMessage(m: WAMessage, group: Group|null, hostId: s
     }
 
     if (formattedMessage.isMedia){
-        const mimetype = (typeof m.message[type] != "string" && m.message[type] && "mimetype" in m.message[type]) ? m.message[type].mimetype as string | null : undefined
-        const url = (typeof m.message[type] != "string" && m.message[type] && "url" in m.message[type]) ? m.message[type].url as string | null : undefined
-        const seconds = (typeof m.message[type] != "string" && m.message[type] && "seconds" in m.message[type]) ? m.message[type].seconds as number | null : undefined
-        const file_length = (typeof m.message[type] != "string" && m.message[type] && "fileLength" in m.message[type]) ? m.message[type].fileLength as number | Long | null : undefined
+        const mimetype = (typeof actualMessage[type] != "string" && actualMessage[type] && "mimetype" in actualMessage[type]) ? actualMessage[type].mimetype as string | null : undefined
+        const url = (typeof actualMessage[type] != "string" && actualMessage[type] && "url" in actualMessage[type]) ? actualMessage[type].url as string | null : undefined
+        const seconds = (typeof actualMessage[type] != "string" && actualMessage[type] && "seconds" in actualMessage[type]) ? actualMessage[type].seconds as number | null : undefined
+        const file_length = (typeof actualMessage[type] != "string" && actualMessage[type] && "fileLength" in actualMessage[type]) ? actualMessage[type].fileLength as number | Long | null : undefined
 
         if (!mimetype || !url || !file_length) return
 
@@ -321,10 +338,18 @@ export async function formatWAMessage(m: WAMessage, group: Group|null, hostId: s
 
 
     if (formattedMessage.isQuoted){
-        const quotedMessage = contextInfo?.quotedMessage
+        if (!contextInfo) return
+
+        let quotedMessage = contextInfo.quotedMessage
 
         if (!quotedMessage) return
-    
+
+        // Baileys 7 Fix: Unwrap ephemeral quoted messages too
+        // If the original message is ephemeral, the quoted message also comes wrapped
+        if (quotedMessage.ephemeralMessage?.message) {
+            quotedMessage = quotedMessage.ephemeralMessage.message
+        }
+
         const typeQuoted = getContentType(quotedMessage)
         const quotedStanzaId = contextInfo.stanzaId ?? undefined
         const senderQuoted = contextInfo.participant || contextInfo.remoteJid
@@ -349,7 +374,7 @@ export async function formatWAMessage(m: WAMessage, group: Group|null, hostId: s
             const mimetypeQuoted = (typeof quotedMessage[typeQuoted] != "string" && quotedMessage[typeQuoted] && "mimetype" in quotedMessage[typeQuoted]) ? quotedMessage[typeQuoted].mimetype as string | null : undefined
             const fileLengthQuoted = (typeof quotedMessage[typeQuoted] != "string" && quotedMessage[typeQuoted] && "fileLength" in quotedMessage[typeQuoted]) ? quotedMessage[typeQuoted].fileLength as number| Long | null : undefined
             const secondsQuoted = (typeof quotedMessage[typeQuoted] != "string" && quotedMessage[typeQuoted] && "seconds" in quotedMessage[typeQuoted]) ? quotedMessage[typeQuoted].seconds as number| null : undefined
-            
+
             if (!urlQuoted || !mimetypeQuoted || !fileLengthQuoted) return
 
             formattedMessage.quotedMessage.media = {
@@ -359,7 +384,7 @@ export async function formatWAMessage(m: WAMessage, group: Group|null, hostId: s
                 seconds: secondsQuoted || undefined,
             }
         }
-        
+
     }
 
     return formattedMessage

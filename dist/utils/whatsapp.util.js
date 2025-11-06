@@ -201,7 +201,8 @@ export async function demoteParticipant(client, groupId, participant) {
     return response;
 }
 export function storeMessageOnCache(message, messageCache) {
-    if (message.key.remoteJid && message.key.id && message.message) {
+    // Baileys 7: message.key can be null/undefined
+    if (message.key && message.key.remoteJid && message.key.id && message.message) {
         messageCache.set(message.key.id, message.message);
     }
 }
@@ -212,23 +213,37 @@ export function getMessageFromCache(messageId, messageCache) {
 export async function formatWAMessage(m, group, hostId) {
     if (!m.message)
         return;
-    const type = getContentType(m.message);
-    if (!type || !isAllowedType(type) || !m.message[type])
+    // Baileys 7 Fix: Handle ephemeral (temporary) messages
+    // When a group has temporary messages enabled, messages come wrapped in ephemeralMessage
+    let actualMessage = m.message;
+    if (m.message.ephemeralMessage?.message) {
+        actualMessage = m.message.ephemeralMessage.message;
+    }
+    const type = getContentType(actualMessage);
+    if (!type || !isAllowedType(type) || !actualMessage[type])
         return;
     const groupController = new GroupController();
     const userController = new UserController();
     const botAdmins = await userController.getAdmins();
-    const contextInfo = (typeof m.message[type] != "string" && m.message[type] && "contextInfo" in m.message[type]) ? m.message[type].contextInfo : undefined;
+    const contextInfo = (typeof actualMessage[type] != "string" && actualMessage[type] && "contextInfo" in actualMessage[type]) ? actualMessage[type].contextInfo : undefined;
     const isQuoted = (contextInfo?.quotedMessage) ? true : false;
     const isGroupMsg = m.key.remoteJid?.includes("@g.us") ?? false;
-    // Fix: Ensure sender is always a valid user ID, not a group ID
-    // In group messages: use participant, in private messages: use remoteJid
-    const sender = (m.key.fromMe)
-        ? hostId
-        : (isGroupMsg ? m.key.participant : m.key.remoteJid);
+    // Baileys 7 Fix: Extract sender correctly for group messages
+    // In Baileys 7, m.key.participant contains LID (@lid) which doesn't work for database lookups
+    // The real phone number is in m.key.participantAlt (@s.whatsapp.net)
+    let sender;
+    if (m.key.fromMe) {
+        sender = hostId;
+    }
+    else if (isGroupMsg) {
+        sender = m.key.participantAlt || m.key.participant || m.key.remoteJid;
+    }
+    else {
+        sender = m.key.remoteJid || undefined;
+    }
     const pushName = m.pushName;
-    const body = m.message.conversation || m.message.extendedTextMessage?.text || undefined;
-    const caption = (typeof m.message[type] != "string" && m.message[type] && "caption" in m.message[type]) ? m.message[type].caption : undefined;
+    const body = actualMessage.conversation || actualMessage.extendedTextMessage?.text || undefined;
+    const caption = (typeof actualMessage[type] != "string" && actualMessage[type] && "caption" in actualMessage[type]) ? actualMessage[type].caption : undefined;
     const text = caption || body || '';
     const [command, ...args] = text.trim().split(" ");
     const message_id = m.key.id;
@@ -245,7 +260,7 @@ export async function formatWAMessage(m, group, hostId) {
         chat_id,
         expiration: contextInfo?.expiration || undefined,
         pushname: pushName || '',
-        body: m.message.conversation || m.message.extendedTextMessage?.text || '',
+        body: actualMessage.conversation || actualMessage.extendedTextMessage?.text || '',
         caption: caption || '',
         mentioned: contextInfo?.mentionedJid || [],
         text_command: args?.join(" ").trim() || '',
@@ -262,10 +277,10 @@ export async function formatWAMessage(m, group, hostId) {
         wa_message: m,
     };
     if (formattedMessage.isMedia) {
-        const mimetype = (typeof m.message[type] != "string" && m.message[type] && "mimetype" in m.message[type]) ? m.message[type].mimetype : undefined;
-        const url = (typeof m.message[type] != "string" && m.message[type] && "url" in m.message[type]) ? m.message[type].url : undefined;
-        const seconds = (typeof m.message[type] != "string" && m.message[type] && "seconds" in m.message[type]) ? m.message[type].seconds : undefined;
-        const file_length = (typeof m.message[type] != "string" && m.message[type] && "fileLength" in m.message[type]) ? m.message[type].fileLength : undefined;
+        const mimetype = (typeof actualMessage[type] != "string" && actualMessage[type] && "mimetype" in actualMessage[type]) ? actualMessage[type].mimetype : undefined;
+        const url = (typeof actualMessage[type] != "string" && actualMessage[type] && "url" in actualMessage[type]) ? actualMessage[type].url : undefined;
+        const seconds = (typeof actualMessage[type] != "string" && actualMessage[type] && "seconds" in actualMessage[type]) ? actualMessage[type].seconds : undefined;
+        const file_length = (typeof actualMessage[type] != "string" && actualMessage[type] && "fileLength" in actualMessage[type]) ? actualMessage[type].fileLength : undefined;
         if (!mimetype || !url || !file_length)
             return;
         formattedMessage.media = {
@@ -276,9 +291,16 @@ export async function formatWAMessage(m, group, hostId) {
         };
     }
     if (formattedMessage.isQuoted) {
-        const quotedMessage = contextInfo?.quotedMessage;
+        if (!contextInfo)
+            return;
+        let quotedMessage = contextInfo.quotedMessage;
         if (!quotedMessage)
             return;
+        // Baileys 7 Fix: Unwrap ephemeral quoted messages too
+        // If the original message is ephemeral, the quoted message also comes wrapped
+        if (quotedMessage.ephemeralMessage?.message) {
+            quotedMessage = quotedMessage.ephemeralMessage.message;
+        }
         const typeQuoted = getContentType(quotedMessage);
         const quotedStanzaId = contextInfo.stanzaId ?? undefined;
         const senderQuoted = contextInfo.participant || contextInfo.remoteJid;

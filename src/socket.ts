@@ -63,8 +63,11 @@ export default async function connect(){
                 // Connection opened successfully
                 if (!isBotReady) {
                     console.log(colorText('✅ Connected! Initializing bot...', '#4caf50'))
-                    await client.waitForSocketOpen()
-                    connectionOpen(client)
+                    // Add delay to ensure connection is fully stable
+                    await new Promise(resolve => setTimeout(resolve, 2000))
+                    await connectionOpen(client)
+                    console.log(colorText('🔄 Syncing groups...', '#2196f3'))
+                    await new Promise(resolve => setTimeout(resolve, 1000))
                     await syncGroupsOnStart(client)
                     isBotReady = true
                     await executeEventQueue(client, eventsCache)
@@ -74,17 +77,6 @@ export default async function connect(){
                 needReconnect = await connectionClose(connectionState)
             }
 
-            // Legacy: handle receivedPendingNotifications for older Baileys behavior
-            if (receivedPendingNotifications && !isBotReady) {
-                console.log(colorText('✅ Connected! Initializing bot...', '#4caf50'))
-                await client.waitForSocketOpen()
-                connectionOpen(client)
-                await syncGroupsOnStart(client)
-                isBotReady = true
-                await executeEventQueue(client, eventsCache)
-                console.log(colorText(botTexts.server_started))
-            }
-            
             if (needReconnect) connect()
         }
 
@@ -104,8 +96,24 @@ export default async function connect(){
         if (events['group-participants.update']){
             const participantsUpdate = events['group-participants.update']
 
-            if (isBotReady) await groupParticipantsUpdated(client, participantsUpdate, botInfo)
-            else queueEvent(eventsCache, "group-participants.update", participantsUpdate)    
+            // Baileys 7 Fix: Extract phoneNumber (real phone) instead of id (LID)
+            // GroupParticipant has: { id: "123@lid", phoneNumber: "5599123@s.whatsapp.net", admin: "admin" }
+            const participantIds = participantsUpdate.participants.map((p: any) => {
+                if (typeof p === 'string') {
+                    return p
+                } else {
+                    // Use phoneNumber if available (Baileys 7), otherwise fallback to id
+                    return p.phoneNumber || p.id
+                }
+            })
+
+            const eventWithStringIds = {
+                ...participantsUpdate,
+                participants: participantIds
+            }
+
+            if (isBotReady) await groupParticipantsUpdated(client, eventWithStringIds, botInfo)
+            else queueEvent(eventsCache, "group-participants.update", eventWithStringIds)
         }
         
         // Novo grupo
