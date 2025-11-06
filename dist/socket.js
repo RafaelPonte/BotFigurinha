@@ -88,10 +88,17 @@ export default async function connect() {
         // Atualização de participantes no grupo
         if (events['group-participants.update']) {
             const participantsUpdate = events['group-participants.update'];
+            // Baileys 7: participants is now GroupParticipant[] instead of string[]
+            // Extract IDs from the participant objects
+            const participantIds = participantsUpdate.participants.map((p) => typeof p === 'string' ? p : p.id);
+            const eventWithStringIds = {
+                ...participantsUpdate,
+                participants: participantIds
+            };
             if (isBotReady)
-                await groupParticipantsUpdated(client, participantsUpdate, botInfo);
+                await groupParticipantsUpdated(client, eventWithStringIds, botInfo);
             else
-                queueEvent(eventsCache, "group-participants.update", participantsUpdate);
+                queueEvent(eventsCache, "group-participants.update", eventWithStringIds);
         }
         // Novo grupo
         if (events['groups.upsert']) {

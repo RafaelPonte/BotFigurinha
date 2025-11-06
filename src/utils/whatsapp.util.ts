@@ -238,9 +238,10 @@ export async function demoteParticipant(client: WASocket, groupId: string, parti
 }
 
 export function storeMessageOnCache(message : proto.IWebMessageInfo, messageCache : NodeCache){
-    if (message.key.remoteJid && message.key.id && message.message){
+    // Baileys 7: message.key can be null/undefined
+    if (message.key && message.key.remoteJid && message.key.id && message.message){
         messageCache.set(message.key.id, message.message)
-    }    
+    }
 }
 
 export function getMessageFromCache(messageId: string, messageCache: NodeCache){

@@ -201,7 +201,8 @@ export async function demoteParticipant(client, groupId, participant) {
     return response;
 }
 export function storeMessageOnCache(message, messageCache) {
-    if (message.key.remoteJid && message.key.id && message.message) {
+    // Baileys 7: message.key can be null/undefined
+    if (message.key && message.key.remoteJid && message.key.id && message.message) {
         messageCache.set(message.key.id, message.message);
     }
 }

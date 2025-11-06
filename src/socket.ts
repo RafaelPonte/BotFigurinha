@@ -96,8 +96,19 @@ export default async function connect(){
         if (events['group-participants.update']){
             const participantsUpdate = events['group-participants.update']
 
-            if (isBotReady) await groupParticipantsUpdated(client, participantsUpdate, botInfo)
-            else queueEvent(eventsCache, "group-participants.update", participantsUpdate)    
+            // Baileys 7: participants is now GroupParticipant[] instead of string[]
+            // Extract IDs from the participant objects
+            const participantIds = participantsUpdate.participants.map((p: any) =>
+                typeof p === 'string' ? p : p.id
+            )
+
+            const eventWithStringIds = {
+                ...participantsUpdate,
+                participants: participantIds
+            }
+
+            if (isBotReady) await groupParticipantsUpdated(client, eventWithStringIds, botInfo)
+            else queueEvent(eventsCache, "group-participants.update", eventWithStringIds)
         }
         
         // Novo grupo
