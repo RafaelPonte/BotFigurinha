@@ -60,6 +60,9 @@ export async function connectionClose(connectionState : Partial<ConnectionState>
         } else {
             if (errorCode == DisconnectReason?.loggedOut){
                 console.log(colorText('\n⚠️  SESSÃO DESLOGADA PELO WHATSAPP', '#ff5722'))
+                console.log(colorText(`🔍 Error Code: ${errorCode}`, '#ff9800'))
+                console.log(colorText(`🔍 Error Message: ${lastDisconnect?.error?.message}`, '#ff9800'))
+                console.log(colorText(`🔍 Full Error: ${JSON.stringify(lastDisconnect?.error)}`, '#ff9800'))
                 console.log(colorText('Limpando sessão antiga...', '#ff9800'))
                 await cleanCreds()
                 console.log(colorText('✅ Sessão limpa! Aguarde 5 segundos antes de reconectar...\n', '#4caf50'))

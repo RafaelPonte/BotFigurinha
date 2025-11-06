@@ -58,13 +58,14 @@ export default async function connect() {
                 // Connection opened successfully
                 if (!isBotReady) {
                     console.log(colorText('✅ Connected! Waiting for connection to stabilize...', '#4caf50'));
-                    // Wait longer to ensure connection is fully stable
-                    await new Promise(resolve => setTimeout(resolve, 5000));
+                    // Wait much longer to ensure connection is fully stable
+                    await new Promise(resolve => setTimeout(resolve, 10000));
                     console.log(colorText('🔄 Initializing bot...', '#2196f3'));
                     await connectionOpen(client);
-                    console.log(colorText('🔄 Syncing groups...', '#2196f3'));
-                    await new Promise(resolve => setTimeout(resolve, 3000));
+                    console.log(colorText('🔄 Syncing groups (may take a while)...', '#2196f3'));
+                    await new Promise(resolve => setTimeout(resolve, 5000));
                     await syncGroupsOnStart(client);
+                    await new Promise(resolve => setTimeout(resolve, 2000));
                     isBotReady = true;
                     await executeEventQueue(client, eventsCache);
                     console.log(colorText(botTexts.server_started));
