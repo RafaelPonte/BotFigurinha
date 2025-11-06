@@ -8,10 +8,12 @@ export default function configSocket (state : AuthenticationState, retryCache : 
         auth: state,
         version,
         msgRetryCounterCache : retryCache,
-        defaultQueryTimeoutMs: 45000,
+        defaultQueryTimeoutMs: 60000,
         syncFullHistory: false,
         markOnlineOnConnect: true,
-        qrTimeout: undefined,
+        qrTimeout: 60000, // 60 seconds timeout for QR code
+        printQRInTerminal: false, // We handle QR display manually
+        browser: Browsers.ubuntu('Chrome'),
         logger: pino({level: 'silent'}),
         shouldIgnoreJid: jid => isJidBroadcast(jid) || jid?.endsWith('@newsletter'),
         getMessage: async (key) => {

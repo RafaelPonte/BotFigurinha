@@ -9,9 +9,18 @@ import qrcode from 'qrcode-terminal';
 import { cleanCreds } from '../helpers/session.auth.helper.js';
 export async function connectionQr(qr) {
     if (qr) {
+        console.clear(); // Clear terminal for better QR visibility
+        console.log(colorText('\n📱 CONEXÃO VIA QR CODE\n', '#2196f3'));
+        console.log(colorText('Siga os passos abaixo para conectar:\n', '#fff'));
+        console.log(colorText('1️⃣  Abra o WhatsApp no seu celular', '#4caf50'));
+        console.log(colorText('2️⃣  Toque em Menu (⋮) > Aparelhos conectados', '#4caf50'));
+        console.log(colorText('3️⃣  Toque em "Conectar um aparelho"', '#4caf50'));
+        console.log(colorText('4️⃣  Aponte seu celular para este QR code\n', '#4caf50'));
+        console.log(colorText('⏱️  Você tem 60 segundos para escanear o QR code\n', '#ff9800'));
         await new Promise(resolve => {
             qrcode.generate(qr, { small: true }, (qrcode) => {
                 console.log(qrcode);
+                console.log(colorText('\n⚠️  IMPORTANTE: Certifique-se de que seu celular está conectado à internet!\n', '#ff9800'));
                 resolve();
             });
         });

@@ -48,10 +48,11 @@ export default async function connect(){
                     if (connectionType == '2') {
                         connectionPairingCode(client)
                     } else {
-                        connectionQr(qr)
+                        await connectionQr(qr)
                     }
                 } else if (connectionType != '2') {
-                    connectionQr(qr)
+                    console.log(colorText('🔄 Novo QR Code gerado (o anterior expirou)', '#ff9800'))
+                    await connectionQr(qr)
                 }
             }
 
