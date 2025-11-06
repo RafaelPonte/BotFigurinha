@@ -59,12 +59,24 @@ export async function connectionClose(connectionState) {
                 console.log(colorText('\n⚠️  SESSÃO DESLOGADA PELO WHATSAPP', '#ff5722'));
                 console.log(colorText(`🔍 Error Code: ${errorCode}`, '#ff9800'));
                 console.log(colorText(`🔍 Error Message: ${lastDisconnect?.error?.message}`, '#ff9800'));
-                console.log(colorText(`🔍 Full Error: ${JSON.stringify(lastDisconnect?.error)}`, '#ff9800'));
-                console.log(colorText('Limpando sessão antiga...', '#ff9800'));
-                await cleanCreds();
-                console.log(colorText('✅ Sessão limpa! Aguarde 5 segundos antes de reconectar...\n', '#4caf50'));
-                await new Promise(resolve => setTimeout(resolve, 5000));
-                needReconnect = true;
+                // Check if it's a device_removed conflict error (401)
+                const errorData = lastDisconnect?.error?.data;
+                const isDeviceRemoved = errorData?.content?.some((item) => item.tag === 'conflict' && item.attrs?.type === 'device_removed');
+                if (isDeviceRemoved) {
+                    console.log(colorText('\n❌ ERRO: Dispositivo removido por conflito!', '#ff5722'));
+                    console.log(colorText('📱 Verifique se você tem outro bot/WhatsApp Web conectado com esse número', '#ff9800'));
+                    console.log(colorText('⚠️  O bot NÃO vai reconectar automaticamente para evitar loop de conflito', '#ff9800'));
+                    console.log(colorText('💡 Solução: Feche todas as outras conexões e reinicie o bot manualmente\n', '#2196f3'));
+                    await cleanCreds();
+                    needReconnect = false; // DO NOT reconnect on device_removed conflict
+                }
+                else {
+                    console.log(colorText('Limpando sessão antiga...', '#ff9800'));
+                    await cleanCreds();
+                    console.log(colorText('✅ Sessão limpa! Aguarde 5 segundos antes de reconectar...\n', '#4caf50'));
+                    await new Promise(resolve => setTimeout(resolve, 5000));
+                    needReconnect = true;
+                }
                 showConsoleError(new Error(botTexts.disconnected.logout), 'CONNECTION');
             }
             else if (errorCode == 405) {

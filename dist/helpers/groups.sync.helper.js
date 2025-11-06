@@ -9,7 +9,9 @@ export async function syncGroupsOnStart(client) {
         if (groupsMetadata.length) {
             let groupController = new GroupController();
             await groupController.syncGroups(groupsMetadata);
-            await syncResources(client);
+            // DISABLED: syncResources causes too many requests and triggers 401 device_removed
+            // The blacklist/antifake sync will happen naturally when users interact
+            // await syncResources(client)
             console.log(colorText(botTexts.groups_loaded));
         }
         return true;
