@@ -34,17 +34,24 @@ export async function messageReceived(client, messages, botInfo, messageCache) {
                     }
                 }
                 let message = await formatWAMessage(messages.messages[0], group, botInfo.host_number);
+                console.log(`[DEBUG] Message formatted: ${message ? 'YES' : 'NO'}`);
                 if (message) {
+                    console.log(`[DEBUG] Registering user: ${message.sender}`);
                     await userController.registerUser(message.sender, message.pushname);
                     if (!isGroupMsg) {
+                        console.log(`[DEBUG] Handling PRIVATE message`);
                         const needCallCommand = await handlePrivateMessage(client, botInfo, message);
+                        console.log(`[DEBUG] Need call command (private): ${needCallCommand}`);
                         if (needCallCommand) {
                             await commandInvoker(client, botInfo, message, null);
                         }
                     }
                     else if (group) {
+                        console.log(`[DEBUG] Handling GROUP message`);
                         const needCallCommand = await handleGroupMessage(client, group, botInfo, message);
+                        console.log(`[DEBUG] Need call command (group): ${needCallCommand}`);
                         if (needCallCommand) {
+                            console.log(`[DEBUG] Calling commandInvoker for group`);
                             await commandInvoker(client, botInfo, message, group);
                         }
                     }
