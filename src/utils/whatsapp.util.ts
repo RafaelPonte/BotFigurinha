@@ -264,31 +264,19 @@ export async function formatWAMessage(m: WAMessage, group: Group|null, hostId: s
     const isGroupMsg = m.key.remoteJid?.includes("@g.us") ?? false
 
     // Fix: Ensure sender is always a valid user ID, not a group ID
-    // Baileys 7: participant may return LID (@lid) instead of phone number
-    let rawSender = (m.key.fromMe)
-        ? hostId
-        : (isGroupMsg ? m.key.participant : m.key.remoteJid)
+    // Baileys 7: Use participantAlt which contains the real phone number
+    let sender: string | undefined
 
-    // DEBUG: Log ALL possible sender fields to find the real phone number
-    console.log(`[DEBUG formatWAMessage] isGroupMsg: ${isGroupMsg}`)
-    console.log(`[DEBUG formatWAMessage] m.key:`, JSON.stringify(m.key))
-    console.log(`[DEBUG formatWAMessage] m.participant:`, m.participant)
-    console.log(`[DEBUG formatWAMessage] m.pushName:`, m.pushName)
-    console.log(`[DEBUG formatWAMessage] rawSender:`, rawSender)
-
-    // Baileys 7: Try to get real phone from participant field (not key.participant)
-    let sender = rawSender
-    if (isGroupMsg && m.participant && m.participant.includes('@s.whatsapp.net')) {
-        // Use the participant field which has the real phone number
-        sender = m.participant
-        console.log(`[DEBUG formatWAMessage] Using m.participant: ${sender}`)
-    } else if (rawSender) {
-        // Try jidNormalizedUser as fallback
-        sender = jidNormalizedUser(rawSender)
-        console.log(`[DEBUG formatWAMessage] Using normalized: ${sender}`)
+    if (m.key.fromMe) {
+        sender = hostId
+    } else if (isGroupMsg) {
+        // Baileys 7: participantAlt has the real phone (@s.whatsapp.net)
+        // participant has the LID (@lid) which doesn't work for user lookup
+        sender = (m.key as any).participantAlt || m.key.participant || m.key.remoteJid
+        console.log(`[DEBUG] Baileys 7 sender extraction - participantAlt: ${(m.key as any).participantAlt}, participant: ${m.key.participant}, final: ${sender}`)
+    } else {
+        sender = m.key.remoteJid || undefined
     }
-
-    console.log(`[DEBUG formatWAMessage] Final sender: ${sender}`)
 
     const pushName = m.pushName
     const body =  m.message.conversation ||  m.message.extendedTextMessage?.text || undefined
