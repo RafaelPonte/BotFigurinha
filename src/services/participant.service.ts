@@ -30,13 +30,22 @@ export class ParticipantService {
 
     public async syncParticipants(groupMeta: GroupMetadata){
         //Adiciona participantes no banco de dados que entraram enquanto o bot estava off.
+        console.log('[DEBUG SYNC] Syncing participants for group:', groupMeta.subject)
+        console.log('[DEBUG SYNC] Full participants array:', JSON.stringify(groupMeta.participants, null, 2))
+
         groupMeta.participants.forEach(async (participant) => {
+            console.log('[DEBUG SYNC] Processing participant:', JSON.stringify(participant))
+            console.log('[DEBUG SYNC] participant.id:', participant.id)
+            console.log('[DEBUG SYNC] participant keys:', Object.keys(participant))
+
             const isAdmin = (participant.admin) ? true : false
             const isGroupParticipant = await this.isGroupParticipant(groupMeta.id, participant.id)
 
             if (!isGroupParticipant) {
+                console.log('[DEBUG SYNC] Adding NEW participant to DB:', participant.id)
                 await this.addParticipant(groupMeta.id, participant.id, isAdmin)
             } else {
+                console.log('[DEBUG SYNC] Updating EXISTING participant in DB:', participant.id)
                 await db.updateAsync({group_id: groupMeta.id, user_id: participant.id}, { $set: { admin: isAdmin }})
             }
         })
