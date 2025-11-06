@@ -24,27 +24,27 @@ export class ParticipantService {
     };
     async syncParticipants(groupMeta) {
         //Adiciona participantes no banco de dados que entraram enquanto o bot estava off.
-        console.log('[DEBUG SYNC] Syncing participants for group:', groupMeta.subject);
-        console.log('[DEBUG SYNC] Full participants array:', JSON.stringify(groupMeta.participants, null, 2));
         groupMeta.participants.forEach(async (participant) => {
-            console.log('[DEBUG SYNC] Processing participant:', JSON.stringify(participant));
-            console.log('[DEBUG SYNC] participant.id:', participant.id);
-            console.log('[DEBUG SYNC] participant keys:', Object.keys(participant));
+            // Baileys 7 Fix: Use phoneNumber instead of id (which is LID)
+            // participant.id = LID (85014633046192@lid) ❌
+            // participant.phoneNumber = Real phone number (558599294567@s.whatsapp.net) ✅
+            const participantId = participant.phoneNumber || participant.id;
             const isAdmin = (participant.admin) ? true : false;
-            const isGroupParticipant = await this.isGroupParticipant(groupMeta.id, participant.id);
+            const isGroupParticipant = await this.isGroupParticipant(groupMeta.id, participantId);
             if (!isGroupParticipant) {
-                console.log('[DEBUG SYNC] Adding NEW participant to DB:', participant.id);
-                await this.addParticipant(groupMeta.id, participant.id, isAdmin);
+                await this.addParticipant(groupMeta.id, participantId, isAdmin);
             }
             else {
-                console.log('[DEBUG SYNC] Updating EXISTING participant in DB:', participant.id);
-                await db.updateAsync({ group_id: groupMeta.id, user_id: participant.id }, { $set: { admin: isAdmin } });
+                await db.updateAsync({ group_id: groupMeta.id, user_id: participantId }, { $set: { admin: isAdmin } });
             }
         });
         //Remove participantes do banco de dados que sairam do grupo enquanto o bot estava off.
         const currentParticipants = await this.getParticipantsFromGroup(groupMeta.id);
         currentParticipants.forEach(async (participant) => {
-            if (!groupMeta.participants.find(groupMetaParticipant => groupMetaParticipant.id == participant.user_id)) {
+            if (!groupMeta.participants.find(groupMetaParticipant => {
+                const metaParticipantId = groupMetaParticipant.phoneNumber || groupMetaParticipant.id;
+                return metaParticipantId == participant.user_id;
+            })) {
                 await this.removeParticipant(groupMeta.id, participant.user_id);
             }
         });
@@ -108,9 +108,6 @@ export class ParticipantService {
     }
     async isGroupAdmin(groupId, userId) {
         const adminsIds = await this.getAdminsIdsFromGroup(groupId);
-        console.log(`[DEBUG ADMIN CHECK] Checking if ${userId} is admin`);
-        console.log(`[DEBUG ADMIN CHECK] Admins in DB: ${JSON.stringify(adminsIds)}`);
-        console.log(`[DEBUG ADMIN CHECK] Is admin: ${adminsIds.includes(userId)}`);
         return adminsIds.includes(userId);
     }
     async incrementParticipantActivity(groupId, userId, type, isCommand) {
