@@ -1,4 +1,4 @@
-import { makeWASocket, fetchLatestBaileysVersion } from 'baileys';
+import { makeWASocket } from 'baileys';
 import NodeCache from 'node-cache';
 import configSocket from './config.js';
 import { BotController } from './controllers/bot.controller.js';
@@ -7,7 +7,6 @@ import { messageReceived } from './events/message-received.event.js';
 import { addedOnGroup } from './events/group-added.event.js';
 import { groupParticipantsUpdated } from './events/group-participants-updated.event.js';
 import { partialGroupUpdate } from './events/group-partial-update.event.js';
-import { syncGroupsOnStart } from './helpers/groups.sync.helper.js';
 import { executeEventQueue, queueEvent } from './helpers/events.queue.helper.js';
 import botTexts from './helpers/bot.texts.helper.js';
 import { askQuestion, colorText } from './utils/general.util.js';
@@ -20,9 +19,9 @@ const eventsCache = new NodeCache();
 const messagesCache = new NodeCache({ stdTTL: 5 * 60, useClones: false });
 export default async function connect() {
     const { state, saveCreds } = await useNeDBAuthState();
-    // Fetch latest version from Baileys (auto-detect best version)
-    const { version, isLatest } = await fetchLatestBaileysVersion();
-    console.log(colorText(`🔧 WhatsApp Web version: ${version.join('.')} (Latest: ${isLatest})`, '#2196f3'));
+    // Use a known stable version that works reliably (tested and approved)
+    const version = [2, 2412, 54];
+    console.log(colorText(`🔧 Using stable WhatsApp Web version: ${version.join('.')}`, '#2196f3'));
     const client = makeWASocket(configSocket(state, retryCache, version, messagesCache));
     let connectionType = null;
     let isBotReady = false;
@@ -59,18 +58,18 @@ export default async function connect() {
             else if (connection === 'open') {
                 // Connection opened successfully
                 if (!isBotReady) {
-                    console.log(colorText('✅ Connected! Stabilizing connection...', '#4caf50'));
-                    // Wait for connection to fully stabilize
-                    await new Promise(resolve => setTimeout(resolve, 10000));
-                    console.log(colorText('🔄 Initializing bot...', '#2196f3'));
+                    console.log(colorText('✅ Connected! Waiting 20 seconds to ensure stability...', '#4caf50'));
+                    // Wait very long to ensure connection is fully stable
+                    await new Promise(resolve => setTimeout(resolve, 20000));
+                    console.log(colorText('🔄 Minimal bot initialization (NO group sync)...', '#2196f3'));
                     await connectionOpen(client);
-                    console.log(colorText('🔄 Loading groups...', '#2196f3'));
+                    // DISABLED: Group sync causes too many requests and triggers 401
+                    // await syncGroupsOnStart(client)
                     await new Promise(resolve => setTimeout(resolve, 5000));
-                    await syncGroupsOnStart(client);
-                    await new Promise(resolve => setTimeout(resolve, 3000));
                     isBotReady = true;
                     await executeEventQueue(client, eventsCache);
-                    console.log(colorText(botTexts.server_started));
+                    console.log(colorText('✅ Bot connected in SAFE MODE - Group sync disabled to prevent 401', '#4caf50'));
+                    console.log(colorText('📝 Groups will sync naturally as messages arrive', '#2196f3'));
                 }
             }
             else if (connection === 'close') {
