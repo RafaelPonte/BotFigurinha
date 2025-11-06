@@ -89,8 +89,22 @@ export default async function connect() {
         if (events['group-participants.update']) {
             const participantsUpdate = events['group-participants.update'];
             // Baileys 7: participants is now GroupParticipant[] instead of string[]
+            // DEBUG: Log the full structure to find the real phone number
+            console.log('[DEBUG GROUP PARTICIPANT] Full participant object:', JSON.stringify(participantsUpdate.participants, null, 2));
             // Extract IDs from the participant objects
-            const participantIds = participantsUpdate.participants.map((p) => typeof p === 'string' ? p : p.id);
+            const participantIds = participantsUpdate.participants.map((p) => {
+                if (typeof p === 'string') {
+                    console.log('[DEBUG GROUP PARTICIPANT] String participant:', p);
+                    return p;
+                }
+                else {
+                    console.log('[DEBUG GROUP PARTICIPANT] Object participant:', JSON.stringify(p));
+                    console.log('[DEBUG GROUP PARTICIPANT] p.id:', p.id);
+                    console.log('[DEBUG GROUP PARTICIPANT] p.jid:', p.jid);
+                    console.log('[DEBUG GROUP PARTICIPANT] p.lid:', p.lid);
+                    return p.id;
+                }
+            });
             const eventWithStringIds = {
                 ...participantsUpdate,
                 participants: participantIds
