@@ -125,6 +125,9 @@ export class ParticipantService {
 
     public async isGroupAdmin(groupId: string, userId: string){
         const adminsIds = await this.getAdminsIdsFromGroup(groupId)
+        console.log(`[DEBUG ADMIN CHECK] Checking if ${userId} is admin`)
+        console.log(`[DEBUG ADMIN CHECK] Admins in DB: ${JSON.stringify(adminsIds)}`)
+        console.log(`[DEBUG ADMIN CHECK] Is admin: ${adminsIds.includes(userId)}`)
         return adminsIds.includes(userId)
     }
 
