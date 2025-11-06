@@ -80,10 +80,12 @@ export async function connectionClose(connectionState) {
                 showConsoleError(new Error(botTexts.disconnected.logout), 'CONNECTION');
             }
             else if (errorCode == 405) {
-                console.log(colorText('\n⚠️  ERRO 405 - Limpando sessão...', '#ff9800'));
+                console.log(colorText('\n⚠️  ERRO 405 - Sessão inválida detectada!', '#ff5722'));
+                console.log(colorText('🧹 Limpando todas as credenciais antigas...', '#ff9800'));
                 await cleanCreds();
-                await new Promise(resolve => setTimeout(resolve, 2000));
-                needReconnect = true;
+                console.log(colorText('\n✅ Limpeza completa! Por favor, REINICIE o bot manualmente.', '#4caf50'));
+                console.log(colorText('💡 Pressione Ctrl+C e depois execute: yarn start\n', '#2196f3'));
+                needReconnect = false; // DO NOT auto-reconnect on 405, force manual restart
             }
             else if (errorCode == DisconnectReason?.restartRequired) {
                 showConsoleError(new Error(botTexts.disconnected.restart), 'CONNECTION');
