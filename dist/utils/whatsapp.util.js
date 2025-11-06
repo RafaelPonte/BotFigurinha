@@ -227,6 +227,11 @@ export async function formatWAMessage(m, group, hostId) {
     const sender = (m.key.fromMe)
         ? hostId
         : (isGroupMsg ? m.key.participant : m.key.remoteJid);
+    // DEBUG: Log sender extraction
+    console.log(`[DEBUG formatWAMessage] isGroupMsg: ${isGroupMsg}`);
+    console.log(`[DEBUG formatWAMessage] m.key.participant: ${m.key.participant}`);
+    console.log(`[DEBUG formatWAMessage] m.key.remoteJid: ${m.key.remoteJid}`);
+    console.log(`[DEBUG formatWAMessage] Extracted sender: ${sender}`);
     const pushName = m.pushName;
     const body = m.message.conversation || m.message.extendedTextMessage?.text || undefined;
     const caption = (typeof m.message[type] != "string" && m.message[type] && "caption" in m.message[type]) ? m.message[type].caption : undefined;
