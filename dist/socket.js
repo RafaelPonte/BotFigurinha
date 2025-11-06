@@ -1,13 +1,14 @@
-import { makeWASocket, fetchLatestBaileysVersion } from 'baileys';
+import { makeWASocket } from 'baileys';
 import NodeCache from 'node-cache';
 import configSocket from './config.js';
 import { BotController } from './controllers/bot.controller.js';
-import { connectionClose, connectionPairingCode, connectionQr } from './events/connection.event.js';
+import { connectionClose, connectionOpen, connectionPairingCode, connectionQr } from './events/connection.event.js';
 import { messageReceived } from './events/message-received.event.js';
 import { addedOnGroup } from './events/group-added.event.js';
 import { groupParticipantsUpdated } from './events/group-participants-updated.event.js';
 import { partialGroupUpdate } from './events/group-partial-update.event.js';
-import { queueEvent } from './helpers/events.queue.helper.js';
+import { syncGroupsOnStart } from './helpers/groups.sync.helper.js';
+import { executeEventQueue, queueEvent } from './helpers/events.queue.helper.js';
 import botTexts from './helpers/bot.texts.helper.js';
 import { askQuestion, colorText } from './utils/general.util.js';
 import { useNeDBAuthState } from './helpers/session.auth.helper.js';
@@ -19,7 +20,9 @@ const eventsCache = new NodeCache();
 const messagesCache = new NodeCache({ stdTTL: 5 * 60, useClones: false });
 export default async function connect() {
     const { state, saveCreds } = await useNeDBAuthState();
-    const { version } = await fetchLatestBaileysVersion();
+    // Force specific working version instead of fetching latest (which may be rejected)
+    const version = [2, 2413, 1];
+    console.log(colorText(`🔧 Using WhatsApp Web version: ${version.join('.')}`, '#2196f3'));
     const client = makeWASocket(configSocket(state, retryCache, version, messagesCache));
     let connectionType = null;
     let isBotReady = false;
@@ -56,17 +59,18 @@ export default async function connect() {
             else if (connection === 'open') {
                 // Connection opened successfully
                 if (!isBotReady) {
-                    console.log(colorText('✅ Connected! Testing in MINIMAL MODE (no operations)...', '#4caf50'));
-                    console.log(colorText('⏱️  Waiting 30 seconds to see if connection stays stable...', '#ff9800'));
-                    await new Promise(resolve => setTimeout(resolve, 30000));
-                    // TEMPORARILY DISABLED ALL OPERATIONS TO TEST IF CONNECTION STAYS
-                    // If connection stays stable for 30 seconds, the issue is in these operations:
-                    // await connectionOpen(client)
-                    // await syncGroupsOnStart(client)
-                    // await executeEventQueue(client, eventsCache)
+                    console.log(colorText('✅ Connected! Stabilizing connection...', '#4caf50'));
+                    // Wait for connection to fully stabilize
+                    await new Promise(resolve => setTimeout(resolve, 10000));
+                    console.log(colorText('🔄 Initializing bot...', '#2196f3'));
+                    await connectionOpen(client);
+                    console.log(colorText('🔄 Loading groups...', '#2196f3'));
+                    await new Promise(resolve => setTimeout(resolve, 5000));
+                    await syncGroupsOnStart(client);
+                    await new Promise(resolve => setTimeout(resolve, 3000));
                     isBotReady = true;
-                    console.log(colorText('✅ CONNECTION STABLE! Bot is connected but NOT initialized', '#4caf50'));
-                    console.log(colorText('⚠️  If you see this message, connection works but operations cause disconnect', '#ff9800'));
+                    await executeEventQueue(client, eventsCache);
+                    console.log(colorText(botTexts.server_started));
                 }
             }
             else if (connection === 'close') {
