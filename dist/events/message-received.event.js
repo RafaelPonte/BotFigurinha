@@ -6,11 +6,18 @@ import { storeMessageOnCache, formatWAMessage } from '../utils/whatsapp.util.js'
 import { commandInvoker } from '../helpers/command.invoker.helper.js';
 export async function messageReceived(client, messages, botInfo, messageCache) {
     try {
+        console.log(`[DEBUG] ============ NEW MESSAGE ============`);
+        console.log(`[DEBUG] Message type: ${messages.type}`);
+        console.log(`[DEBUG] From: ${messages.messages[0].key.remoteJid}`);
+        console.log(`[DEBUG] From me: ${messages.messages[0].key.fromMe}`);
         if (messages.messages[0].key.fromMe) {
             storeMessageOnCache(messages.messages[0], messageCache);
+            console.log(`[DEBUG] Message from me, stored in cache, SKIPPING`);
+            return;
         }
         switch (messages.type) {
             case 'notify':
+                console.log(`[DEBUG] Processing notify message`);
                 const userController = new UserController();
                 const groupController = new GroupController();
                 const idChat = messages.messages[0].key.remoteJid;
