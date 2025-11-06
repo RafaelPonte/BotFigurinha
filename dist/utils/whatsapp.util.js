@@ -211,17 +211,29 @@ export function getMessageFromCache(messageId, messageCache) {
     return message;
 }
 export async function formatWAMessage(m, group, hostId) {
-    if (!m.message)
+    console.log('[DEBUG FORMAT] Starting formatWAMessage');
+    console.log('[DEBUG FORMAT] Has m.message:', !!m.message);
+    if (!m.message) {
+        console.log('[DEBUG FORMAT] FAIL: No m.message');
         return;
+    }
     const type = getContentType(m.message);
-    if (!type || !isAllowedType(type) || !m.message[type])
+    console.log('[DEBUG FORMAT] Message type:', type);
+    console.log('[DEBUG FORMAT] Is allowed type:', type ? isAllowedType(type) : false);
+    if (!type || !isAllowedType(type) || !m.message[type]) {
+        console.log('[DEBUG FORMAT] FAIL: Invalid type or not allowed');
         return;
+    }
     const groupController = new GroupController();
     const userController = new UserController();
     const botAdmins = await userController.getAdmins();
     const contextInfo = (typeof m.message[type] != "string" && m.message[type] && "contextInfo" in m.message[type]) ? m.message[type].contextInfo : undefined;
     const isQuoted = (contextInfo?.quotedMessage) ? true : false;
     const isGroupMsg = m.key.remoteJid?.includes("@g.us") ?? false;
+    console.log('[DEBUG FORMAT] Is group message:', isGroupMsg);
+    console.log('[DEBUG FORMAT] m.key.participant:', m.key.participant);
+    console.log('[DEBUG FORMAT] m.key.participantAlt:', m.key.participantAlt);
+    console.log('[DEBUG FORMAT] m.key.remoteJid:', m.key.remoteJid);
     // Baileys 7 Fix: Extract sender correctly for group messages
     // In Baileys 7, m.key.participant contains LID (@lid) which doesn't work for database lookups
     // The real phone number is in m.key.participantAlt (@s.whatsapp.net)
@@ -235,6 +247,7 @@ export async function formatWAMessage(m, group, hostId) {
     else {
         sender = m.key.remoteJid || undefined;
     }
+    console.log('[DEBUG FORMAT] Extracted sender:', sender);
     const pushName = m.pushName;
     const body = m.message.conversation || m.message.extendedTextMessage?.text || undefined;
     const caption = (typeof m.message[type] != "string" && m.message[type] && "caption" in m.message[type]) ? m.message[type].caption : undefined;
@@ -243,9 +256,18 @@ export async function formatWAMessage(m, group, hostId) {
     const message_id = m.key.id;
     const t = m.messageTimestamp;
     const chat_id = m.key.remoteJid;
+    console.log('[DEBUG FORMAT] message_id:', message_id);
+    console.log('[DEBUG FORMAT] timestamp:', t);
+    console.log('[DEBUG FORMAT] chat_id:', chat_id);
     const isGroupAdmin = (sender && group) ? await groupController.isParticipantAdmin(group.id, sender) : false;
-    if (!message_id || !t || !sender || !chat_id)
+    if (!message_id || !t || !sender || !chat_id) {
+        console.log('[DEBUG FORMAT] FAIL: Missing required fields');
+        console.log('[DEBUG FORMAT] - message_id:', !!message_id);
+        console.log('[DEBUG FORMAT] - t:', !!t);
+        console.log('[DEBUG FORMAT] - sender:', !!sender);
+        console.log('[DEBUG FORMAT] - chat_id:', !!chat_id);
         return;
+    }
     let formattedMessage = {
         message_id,
         sender,
