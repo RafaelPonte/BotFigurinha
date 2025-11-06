@@ -250,30 +250,18 @@ export function getMessageFromCache(messageId: string, messageCache: NodeCache){
 }
 
 export async function formatWAMessage(m: WAMessage, group: Group|null, hostId: string){
-    console.log('[DEBUG FORMAT] Starting formatWAMessage')
-    console.log('[DEBUG FORMAT] Has m.message:', !!m.message)
-
-    if (!m.message) {
-        console.log('[DEBUG FORMAT] FAIL: No m.message')
-        return
-    }
+    if (!m.message) return
 
     // Baileys 7 Fix: Handle ephemeral (temporary) messages
     // When a group has temporary messages enabled, messages come wrapped in ephemeralMessage
     let actualMessage = m.message
     if (m.message.ephemeralMessage?.message) {
-        console.log('[DEBUG FORMAT] Unwrapping ephemeral message')
         actualMessage = m.message.ephemeralMessage.message
     }
 
     const type = getContentType(actualMessage)
-    console.log('[DEBUG FORMAT] Message type:', type)
-    console.log('[DEBUG FORMAT] Is allowed type:', type ? isAllowedType(type) : false)
 
-    if (!type || !isAllowedType(type) || !actualMessage[type]) {
-        console.log('[DEBUG FORMAT] FAIL: Invalid type or not allowed')
-        return
-    }
+    if (!type || !isAllowedType(type) || !actualMessage[type]) return
 
     const groupController = new GroupController()
     const userController = new UserController()
@@ -281,11 +269,6 @@ export async function formatWAMessage(m: WAMessage, group: Group|null, hostId: s
     const contextInfo : proto.IContextInfo | undefined  = (typeof actualMessage[type] != "string" && actualMessage[type] && "contextInfo" in actualMessage[type]) ? actualMessage[type].contextInfo as proto.IContextInfo: undefined
     const isQuoted = (contextInfo?.quotedMessage) ? true : false
     const isGroupMsg = m.key.remoteJid?.includes("@g.us") ?? false
-
-    console.log('[DEBUG FORMAT] Is group message:', isGroupMsg)
-    console.log('[DEBUG FORMAT] m.key.participant:', m.key.participant)
-    console.log('[DEBUG FORMAT] m.key.participantAlt:', (m.key as any).participantAlt)
-    console.log('[DEBUG FORMAT] m.key.remoteJid:', m.key.remoteJid)
 
     // Baileys 7 Fix: Extract sender correctly for group messages
     // In Baileys 7, m.key.participant contains LID (@lid) which doesn't work for database lookups
@@ -300,8 +283,6 @@ export async function formatWAMessage(m: WAMessage, group: Group|null, hostId: s
         sender = m.key.remoteJid || undefined
     }
 
-    console.log('[DEBUG FORMAT] Extracted sender:', sender)
-
     const pushName = m.pushName
     const body =  actualMessage.conversation ||  actualMessage.extendedTextMessage?.text || undefined
     const caption = (typeof actualMessage[type] != "string" && actualMessage[type] && "caption" in actualMessage[type]) ? actualMessage[type].caption as string | null: undefined
@@ -310,21 +291,9 @@ export async function formatWAMessage(m: WAMessage, group: Group|null, hostId: s
     const message_id = m.key.id
     const t = m.messageTimestamp as number
     const chat_id = m.key.remoteJid
-
-    console.log('[DEBUG FORMAT] message_id:', message_id)
-    console.log('[DEBUG FORMAT] timestamp:', t)
-    console.log('[DEBUG FORMAT] chat_id:', chat_id)
-
     const isGroupAdmin = (sender && group) ? await groupController.isParticipantAdmin(group.id, sender) : false
 
-    if (!message_id || !t || !sender || !chat_id ) {
-        console.log('[DEBUG FORMAT] FAIL: Missing required fields')
-        console.log('[DEBUG FORMAT] - message_id:', !!message_id)
-        console.log('[DEBUG FORMAT] - t:', !!t)
-        console.log('[DEBUG FORMAT] - sender:', !!sender)
-        console.log('[DEBUG FORMAT] - chat_id:', !!chat_id)
-        return
-    }
+    if (!message_id || !t || !sender || !chat_id ) return
 
     let formattedMessage : Message = {
         message_id,
@@ -351,24 +320,13 @@ export async function formatWAMessage(m: WAMessage, group: Group|null, hostId: s
         wa_message: m,
     }
 
-    console.log('[DEBUG FORMAT] formattedMessage created successfully')
-    console.log('[DEBUG FORMAT] isMedia:', formattedMessage.isMedia)
-    console.log('[DEBUG FORMAT] isQuoted:', formattedMessage.isQuoted)
-
     if (formattedMessage.isMedia){
-        console.log('[DEBUG FORMAT] Processing media message')
         const mimetype = (typeof actualMessage[type] != "string" && actualMessage[type] && "mimetype" in actualMessage[type]) ? actualMessage[type].mimetype as string | null : undefined
         const url = (typeof actualMessage[type] != "string" && actualMessage[type] && "url" in actualMessage[type]) ? actualMessage[type].url as string | null : undefined
         const seconds = (typeof actualMessage[type] != "string" && actualMessage[type] && "seconds" in actualMessage[type]) ? actualMessage[type].seconds as number | null : undefined
         const file_length = (typeof actualMessage[type] != "string" && actualMessage[type] && "fileLength" in actualMessage[type]) ? actualMessage[type].fileLength as number | Long | null : undefined
 
-        if (!mimetype || !url || !file_length) {
-            console.log('[DEBUG FORMAT] FAIL: Missing media fields')
-            console.log('[DEBUG FORMAT] - mimetype:', !!mimetype)
-            console.log('[DEBUG FORMAT] - url:', !!url)
-            console.log('[DEBUG FORMAT] - file_length:', !!file_length)
-            return
-        }
+        if (!mimetype || !url || !file_length) return
 
         formattedMessage.media = {
             mimetype,
@@ -380,24 +338,15 @@ export async function formatWAMessage(m: WAMessage, group: Group|null, hostId: s
 
 
     if (formattedMessage.isQuoted){
-        console.log('[DEBUG FORMAT] Processing quoted message')
-
-        if (!contextInfo) {
-            console.log('[DEBUG FORMAT] FAIL: No contextInfo')
-            return
-        }
+        if (!contextInfo) return
 
         let quotedMessage = contextInfo.quotedMessage
 
-        if (!quotedMessage) {
-            console.log('[DEBUG FORMAT] FAIL: No quotedMessage in contextInfo')
-            return
-        }
+        if (!quotedMessage) return
 
         // Baileys 7 Fix: Unwrap ephemeral quoted messages too
         // If the original message is ephemeral, the quoted message also comes wrapped
         if (quotedMessage.ephemeralMessage?.message) {
-            console.log('[DEBUG FORMAT] Unwrapping ephemeral QUOTED message')
             quotedMessage = quotedMessage.ephemeralMessage.message
         }
 
@@ -405,12 +354,7 @@ export async function formatWAMessage(m: WAMessage, group: Group|null, hostId: s
         const quotedStanzaId = contextInfo.stanzaId ?? undefined
         const senderQuoted = contextInfo.participant || contextInfo.remoteJid
 
-        if (!typeQuoted || !senderQuoted ) {
-            console.log('[DEBUG FORMAT] FAIL: Invalid quoted message')
-            console.log('[DEBUG FORMAT] - typeQuoted:', typeQuoted)
-            console.log('[DEBUG FORMAT] - senderQuoted:', senderQuoted)
-            return
-        }
+        if (!typeQuoted || !senderQuoted ) return
 
         const captionQuoted = (typeof quotedMessage[typeQuoted] != "string" && quotedMessage[typeQuoted] && "caption" in quotedMessage[typeQuoted]) ? quotedMessage[typeQuoted].caption as string | null : undefined
         const quotedWAMessage = generateWAMessageFromContent(formattedMessage.chat_id, quotedMessage, { userJid: senderQuoted, messageId: quotedStanzaId })
@@ -426,19 +370,12 @@ export async function formatWAMessage(m: WAMessage, group: Group|null, hostId: s
         }
 
         if (formattedMessage.quotedMessage?.isMedia){
-            console.log('[DEBUG FORMAT] Processing quoted media')
             const urlQuoted = (typeof quotedMessage[typeQuoted] != "string" && quotedMessage[typeQuoted] && "url" in quotedMessage[typeQuoted]) ? quotedMessage[typeQuoted].url as string | null : undefined
             const mimetypeQuoted = (typeof quotedMessage[typeQuoted] != "string" && quotedMessage[typeQuoted] && "mimetype" in quotedMessage[typeQuoted]) ? quotedMessage[typeQuoted].mimetype as string | null : undefined
             const fileLengthQuoted = (typeof quotedMessage[typeQuoted] != "string" && quotedMessage[typeQuoted] && "fileLength" in quotedMessage[typeQuoted]) ? quotedMessage[typeQuoted].fileLength as number| Long | null : undefined
             const secondsQuoted = (typeof quotedMessage[typeQuoted] != "string" && quotedMessage[typeQuoted] && "seconds" in quotedMessage[typeQuoted]) ? quotedMessage[typeQuoted].seconds as number| null : undefined
 
-            if (!urlQuoted || !mimetypeQuoted || !fileLengthQuoted) {
-                console.log('[DEBUG FORMAT] FAIL: Missing quoted media fields')
-                console.log('[DEBUG FORMAT] - urlQuoted:', !!urlQuoted)
-                console.log('[DEBUG FORMAT] - mimetypeQuoted:', !!mimetypeQuoted)
-                console.log('[DEBUG FORMAT] - fileLengthQuoted:', !!fileLengthQuoted)
-                return
-            }
+            if (!urlQuoted || !mimetypeQuoted || !fileLengthQuoted) return
 
             formattedMessage.quotedMessage.media = {
                 url: urlQuoted,
@@ -450,7 +387,6 @@ export async function formatWAMessage(m: WAMessage, group: Group|null, hostId: s
 
     }
 
-    console.log('[DEBUG FORMAT] SUCCESS! Returning formatted message')
     return formattedMessage
 }
 
