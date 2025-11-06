@@ -222,17 +222,15 @@ export async function formatWAMessage(m, group, hostId) {
     const contextInfo = (typeof m.message[type] != "string" && m.message[type] && "contextInfo" in m.message[type]) ? m.message[type].contextInfo : undefined;
     const isQuoted = (contextInfo?.quotedMessage) ? true : false;
     const isGroupMsg = m.key.remoteJid?.includes("@g.us") ?? false;
-    // Fix: Ensure sender is always a valid user ID, not a group ID
-    // Baileys 7: Use participantAlt which contains the real phone number
+    // Baileys 7 Fix: Extract sender correctly for group messages
+    // In Baileys 7, m.key.participant contains LID (@lid) which doesn't work for database lookups
+    // The real phone number is in m.key.participantAlt (@s.whatsapp.net)
     let sender;
     if (m.key.fromMe) {
         sender = hostId;
     }
     else if (isGroupMsg) {
-        // Baileys 7: participantAlt has the real phone (@s.whatsapp.net)
-        // participant has the LID (@lid) which doesn't work for user lookup
         sender = m.key.participantAlt || m.key.participant || m.key.remoteJid;
-        console.log(`[DEBUG] Baileys 7 sender extraction - participantAlt: ${m.key.participantAlt}, participant: ${m.key.participant}, final: ${sender}`);
     }
     else {
         sender = m.key.remoteJid || undefined;
