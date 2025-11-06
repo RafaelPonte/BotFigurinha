@@ -264,19 +264,31 @@ export async function formatWAMessage(m: WAMessage, group: Group|null, hostId: s
     const isGroupMsg = m.key.remoteJid?.includes("@g.us") ?? false
 
     // Fix: Ensure sender is always a valid user ID, not a group ID
-    // In group messages: use participant, in private messages: use remoteJid
-    // Baileys 7: Use jidNormalizedUser to convert LID (@lid) to real phone number (@s.whatsapp.net)
+    // Baileys 7: participant may return LID (@lid) instead of phone number
     let rawSender = (m.key.fromMe)
         ? hostId
         : (isGroupMsg ? m.key.participant : m.key.remoteJid)
 
-    // Normalize the sender JID (converts @lid to @s.whatsapp.net)
-    const sender = rawSender ? jidNormalizedUser(rawSender) : rawSender
-
-    // DEBUG: Log sender extraction
+    // DEBUG: Log ALL possible sender fields to find the real phone number
     console.log(`[DEBUG formatWAMessage] isGroupMsg: ${isGroupMsg}`)
-    console.log(`[DEBUG formatWAMessage] m.key.participant (raw): ${m.key.participant}`)
-    console.log(`[DEBUG formatWAMessage] Normalized sender: ${sender}`)
+    console.log(`[DEBUG formatWAMessage] m.key:`, JSON.stringify(m.key))
+    console.log(`[DEBUG formatWAMessage] m.participant:`, m.participant)
+    console.log(`[DEBUG formatWAMessage] m.pushName:`, m.pushName)
+    console.log(`[DEBUG formatWAMessage] rawSender:`, rawSender)
+
+    // Baileys 7: Try to get real phone from participant field (not key.participant)
+    let sender = rawSender
+    if (isGroupMsg && m.participant && m.participant.includes('@s.whatsapp.net')) {
+        // Use the participant field which has the real phone number
+        sender = m.participant
+        console.log(`[DEBUG formatWAMessage] Using m.participant: ${sender}`)
+    } else if (rawSender) {
+        // Try jidNormalizedUser as fallback
+        sender = jidNormalizedUser(rawSender)
+        console.log(`[DEBUG formatWAMessage] Using normalized: ${sender}`)
+    }
+
+    console.log(`[DEBUG formatWAMessage] Final sender: ${sender}`)
 
     const pushName = m.pushName
     const body =  m.message.conversation ||  m.message.extendedTextMessage?.text || undefined
