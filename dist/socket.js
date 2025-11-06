@@ -58,8 +58,9 @@ export default async function connect() {
                 // Connection opened successfully
                 if (!isBotReady) {
                     console.log(colorText('✅ Connected! Initializing bot...', '#4caf50'));
-                    await client.waitForSocketOpen();
-                    connectionOpen(client);
+                    // Add small delay to ensure connection is fully established
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    await connectionOpen(client);
                     await syncGroupsOnStart(client);
                     isBotReady = true;
                     await executeEventQueue(client, eventsCache);
@@ -68,16 +69,6 @@ export default async function connect() {
             }
             else if (connection === 'close') {
                 needReconnect = await connectionClose(connectionState);
-            }
-            // Legacy: handle receivedPendingNotifications for older Baileys behavior
-            if (receivedPendingNotifications && !isBotReady) {
-                console.log(colorText('✅ Connected! Initializing bot...', '#4caf50'));
-                await client.waitForSocketOpen();
-                connectionOpen(client);
-                await syncGroupsOnStart(client);
-                isBotReady = true;
-                await executeEventQueue(client, eventsCache);
-                console.log(colorText(botTexts.server_started));
             }
             if (needReconnect)
                 connect();

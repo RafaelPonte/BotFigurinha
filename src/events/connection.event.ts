@@ -58,16 +58,27 @@ export async function connectionClose(connectionState : Partial<ConnectionState>
         } else if (lastDisconnect?.error?.message == "fatal_error"){
             showConsoleError(new Error(botTexts.disconnected.fatal_error), 'CONNECTION')
         } else {
-            needReconnect = true
             if (errorCode == DisconnectReason?.loggedOut){
+                console.log(colorText('\n⚠️  SESSÃO DESLOGADA PELO WHATSAPP', '#ff5722'))
+                console.log(colorText('Limpando sessão antiga...', '#ff9800'))
                 await cleanCreds()
+                console.log(colorText('✅ Sessão limpa! Aguarde 5 segundos antes de reconectar...\n', '#4caf50'))
+                await new Promise(resolve => setTimeout(resolve, 5000))
+                needReconnect = true
                 showConsoleError(new Error(botTexts.disconnected.logout), 'CONNECTION')
             } else if (errorCode == 405) {
+                console.log(colorText('\n⚠️  ERRO 405 - Limpando sessão...', '#ff9800'))
                 await cleanCreds()
+                await new Promise(resolve => setTimeout(resolve, 2000))
+                needReconnect = true
             } else if (errorCode == DisconnectReason?.restartRequired){
                 showConsoleError(new Error(botTexts.disconnected.restart), 'CONNECTION')
+                await new Promise(resolve => setTimeout(resolve, 1000))
+                needReconnect = true
             } else {
                 showConsoleError(new Error(buildText(botTexts.disconnected.bad_connection, errorCode.toString(), lastDisconnect?.error?.message)), 'CONNECTION')
+                await new Promise(resolve => setTimeout(resolve, 2000))
+                needReconnect = true
             }
         }
 
