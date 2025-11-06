@@ -21,6 +21,24 @@ export async function messageReceived (client: WASocket, messages : {messages: W
                 const idChat = messages.messages[0].key.remoteJid
                 const isGroupMsg = idChat?.includes("@g.us")
                 const group = (isGroupMsg && idChat) ? await groupController.getGroup(idChat) : null
+
+                // DEBUG: Log group status
+                if (isGroupMsg) {
+                    console.log(`[DEBUG] Group message from: ${idChat}`)
+                    console.log(`[DEBUG] Group in database: ${group ? 'YES' : 'NO'}`)
+                    if (!group) {
+                        console.log(`[DEBUG] Group NOT FOUND in database! Syncing now...`)
+                        // Try to sync this specific group
+                        try {
+                            const groupMetadata = await client.groupMetadata(idChat!)
+                            await groupController.registerGroup(groupMetadata)
+                            console.log(`[DEBUG] Group synced: ${groupMetadata.subject}`)
+                        } catch (err) {
+                            console.log(`[DEBUG] Failed to sync group:`, err)
+                        }
+                    }
+                }
+
                 let message = await formatWAMessage(messages.messages[0], group, botInfo.host_number)
 
                 if (message) {
