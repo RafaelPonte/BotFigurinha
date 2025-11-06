@@ -62,18 +62,19 @@ export default async function connect(){
             } else if (connection === 'open'){
                 // Connection opened successfully
                 if (!isBotReady) {
-                    console.log(colorText('✅ Connected! Waiting for connection to stabilize...', '#4caf50'))
-                    // Wait even longer to ensure connection is fully stable
-                    await new Promise(resolve => setTimeout(resolve, 15000))
-                    console.log(colorText('🔄 Initializing bot (minimal operations)...', '#2196f3'))
-                    await connectionOpen(client)
-                    console.log(colorText('🔄 Loading groups metadata only (no sync operations)...', '#2196f3'))
-                    await new Promise(resolve => setTimeout(resolve, 8000))
-                    await syncGroupsOnStart(client)
-                    await new Promise(resolve => setTimeout(resolve, 5000))
+                    console.log(colorText('✅ Connected! Testing in MINIMAL MODE (no operations)...', '#4caf50'))
+                    console.log(colorText('⏱️  Waiting 30 seconds to see if connection stays stable...', '#ff9800'))
+                    await new Promise(resolve => setTimeout(resolve, 30000))
+
+                    // TEMPORARILY DISABLED ALL OPERATIONS TO TEST IF CONNECTION STAYS
+                    // If connection stays stable for 30 seconds, the issue is in these operations:
+                    // await connectionOpen(client)
+                    // await syncGroupsOnStart(client)
+                    // await executeEventQueue(client, eventsCache)
+
                     isBotReady = true
-                    await executeEventQueue(client, eventsCache)
-                    console.log(colorText(botTexts.server_started))
+                    console.log(colorText('✅ CONNECTION STABLE! Bot is connected but NOT initialized', '#4caf50'))
+                    console.log(colorText('⚠️  If you see this message, connection works but operations cause disconnect', '#ff9800'))
                 }
             } else if (connection === 'close'){
                 needReconnect = await connectionClose(connectionState)
