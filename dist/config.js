@@ -1,15 +1,17 @@
 import { pino } from 'pino';
-import { isJidBroadcast } from 'baileys';
+import { isJidBroadcast, Browsers } from 'baileys';
 import { getMessageFromCache } from './utils/whatsapp.util.js';
 export default function configSocket(state, retryCache, version, messageCache) {
     const config = {
         auth: state,
         version,
         msgRetryCounterCache: retryCache,
-        defaultQueryTimeoutMs: 45000,
+        defaultQueryTimeoutMs: 60000,
         syncFullHistory: false,
         markOnlineOnConnect: true,
-        qrTimeout: undefined,
+        qrTimeout: 60000, // 60 seconds timeout for QR code
+        printQRInTerminal: false, // We handle QR display manually
+        browser: Browsers.appropriate('Desktop'), // Better compatibility
         logger: pino({ level: 'silent' }),
         shouldIgnoreJid: jid => isJidBroadcast(jid) || jid?.endsWith('@newsletter'),
         getMessage: async (key) => {

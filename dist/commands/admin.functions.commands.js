@@ -54,9 +54,9 @@ export async function sairgruposCommand(client, botInfo, message, group) {
     const groupController = new GroupController();
     const currentGroups = await groupController.getAllGroups();
     const replyText = buildText(adminCommands.sairgrupos.msgs.reply, currentGroups.length);
-    currentGroups.forEach(async (group) => {
+    await Promise.all(currentGroups.map(async (group) => {
         await waUtil.leaveGroup(client, group.id);
-    });
+    }));
     if (message.isGroupMsg) {
         await waUtil.sendText(client, message.sender, replyText);
     }
@@ -311,7 +311,9 @@ export async function entrargrupoCommand(client, botInfo, message, group) {
     if (!groupResponse) {
         await waUtil.replyText(client, message.chat_id, adminCommands.entrargrupo.msgs.reply_pending, message.wa_message, { expiration: message.expiration });
     }
-    await waUtil.replyText(client, message.chat_id, adminCommands.entrargrupo.msgs.reply, message.wa_message, { expiration: message.expiration });
+    else {
+        await waUtil.replyText(client, message.chat_id, adminCommands.entrargrupo.msgs.reply, message.wa_message, { expiration: message.expiration });
+    }
 }
 export async function bcgruposCommand(client, botInfo, message, group) {
     const groupController = new GroupController();
@@ -321,7 +323,7 @@ export async function bcgruposCommand(client, botInfo, message, group) {
     const currentGroups = await groupController.getAllGroups();
     const waitReply = buildText(adminCommands.bcgrupos.msgs.wait, currentGroups.length);
     await waUtil.replyText(client, message.chat_id, waitReply, message.wa_message, { expiration: message.expiration });
-    currentGroups.forEach(async (group) => {
+    await Promise.all(currentGroups.map(async (group) => {
         if (!group.restricted) {
             await new Promise((resolve) => {
                 setTimeout(async () => {
@@ -333,7 +335,7 @@ export async function bcgruposCommand(client, botInfo, message, group) {
                 }, 1000);
             });
         }
-    });
+    }));
     await waUtil.replyText(client, message.chat_id, adminCommands.bcgrupos.msgs.reply, message.wa_message, { expiration: message.expiration });
 }
 export async function fotobotCommand(client, botInfo, message, group) {

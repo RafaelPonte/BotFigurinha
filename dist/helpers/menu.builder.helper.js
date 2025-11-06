@@ -10,7 +10,7 @@ export const mainMenu = (botInfo) => {
 *|*► *${prefix}menu* 3   📥 Downloads
 *|*► *${prefix}menu* 4   🧩 Variado
 *|*
-*|*━━✦༻ _*Feito por: Leal*_ ༺✦`;
+*|*━━✦༻ _*Atualizado por: RafaelPonte*_ ༺✦`;
 };
 // MENU PRINCIPAL (GRUPO)
 export const mainMenuGroup = (botInfo) => {
@@ -25,7 +25,7 @@ export const mainMenuGroup = (botInfo) => {
 *|*► *${prefix}menu* 4   🧩 Variado
 *|*► *${prefix}menu* 5   👨‍👩‍👧‍👦 Grupo
 *|*
-*|*━━✦༻ _*Feito por: Leal*_ ༺✦`;
+*|*━━✦༻ _*Atualizado por: RafaelPonte*_ ༺✦`;
 };
 // MENU - STICKER
 export const stickerMenu = (botInfo) => {
@@ -43,7 +43,7 @@ export const stickerMenu = (botInfo) => {
 *|*► *${prefix}ssf* - Imagem para sticker (sem fundo)
 *|*► *${prefix}emojimix* 💩+😀 - Emoji para sticker
 *|*
-*|*━━✦༻ _*Feito por: Leal*_ ༺✦`;
+*|*━━✦༻ _*Atualizado por: RafaelPonte*_ ༺✦`;
 };
 // MENU - INFO
 export const infoMenu = (botInfo) => {
@@ -57,7 +57,7 @@ export const infoMenu = (botInfo) => {
 *|*► *${prefix}reportar* texto - Reporte um problema
 *|*► *${prefix}meusdados* - Exibe seus dados de uso
 *|* 
-*|*━━✦༻ _*Feito por: Leal*_ ༺✦`;
+*|*━━✦༻ _*Atualizado por: RafaelPonte*_ ༺✦`;
 };
 // MENU - DOWNLOAD
 export const downloadMenu = (botInfo) => {
@@ -75,7 +75,7 @@ export const downloadMenu = (botInfo) => {
 *|*► *${prefix}tk* link - Vídeo do Tiktok
 *|*► *${prefix}img* tema - Imagens do Google
 *|*
-*|*━━✦༻ _*Feito por: Leal*_ ༺✦`;
+*|*━━✦༻ _*Atualizado por: RafaelPonte*_ ༺✦`;
 };
 // MENU - UTILIDADE
 export const utilityMenu = (botInfo) => {
@@ -118,7 +118,7 @@ export const utilityMenu = (botInfo) => {
 *|*► *${prefix}qualmusica* - Reconhecimento de música
 *|*► *${prefix}qualanime* - Reconhecimento de anime
 *|*
-*|*━━✦༻ _*Feito por: Leal*_ ༺✦`;
+*|*━━✦༻ _*Atualizado por: RafaelPonte*_ ༺✦`;
 };
 // MENU - GRUPO
 export const groupMenu = (botInfo) => {
@@ -134,7 +134,7 @@ export const groupMenu = (botInfo) => {
 *|*► *${prefix}adms* - Lista de administradores
 *|*► *${prefix}dono* - Dono do grupo
 *|*
-*|*━━✦༻ _*Feito por: Leal*_ ༺✦`;
+*|*━━✦༻ _*Atualizado por: RafaelPonte*_ ༺✦`;
 };
 // MENU - GRUPO (ADMINISTRADOR)
 export const groupAdminMenu = (botInfo) => {
@@ -214,7 +214,7 @@ export const groupAdminMenu = (botInfo) => {
 *|*► *${prefix}addfiltros* palavra - Adiciona palavras ao filtro
 *|*► *${prefix}rmfiltros* palavra - Remove palavras do filtro
 *|*
-*|*━━✦༻ _*Feito por: Leal*_ ༺✦`;
+*|*━━✦༻ _*Atualizado por: RafaelPonte*_ ༺✦`;
 };
 // MENU - VARIADO
 export const miscMenu = (botInfo) => {
@@ -236,7 +236,7 @@ export const miscMenu = (botInfo) => {
 *|*► *${prefix}frase* - Frase dúvidosa do WhatsApp Jr
 *|*► *${prefix}chance* texto - Chance de algo acontecer
 *|*
-*|*━━✦༻ _*Feito por: Leal*_ ༺✦`;
+*|*━━✦༻ _*Atualizado por: RafaelPonte*_ ༺✦`;
 };
 // MENU - VARIADO (GRUPO)
 export const miscGroupMenu = (botInfo) => {
@@ -266,7 +266,7 @@ export const miscGroupMenu = (botInfo) => {
 *|*► *${prefix}top5* tema - Ranking de top 5
 *|*► *${prefix}par* @pessoa1 @pessoa2 - Nível de compatibilidade
 *|*
-*|*━━✦༻ _*Feito por: Leal*_ ༺✦`;
+*|*━━✦༻ _*Atualizado por: RafaelPonte*_ ༺✦`;
 };
 // MENU - ADMIN
 export const adminMenu = (botInfo) => {
@@ -322,5 +322,5 @@ export const adminMenu = (botInfo) => {
 *|*━ ✦ 📩 *MENSAGENS PRIVADAS* ✦
 *|*► *${prefix}comandospv* - Ativa/desativa os comandos em mensagens privadas
 *|*
-*|*━━✦༻ _*Feito por: Leal*_ ༺✦`;
+*|*━━✦༻ _*Atualizado por: RafaelPonte*_ ༺✦`;
 };

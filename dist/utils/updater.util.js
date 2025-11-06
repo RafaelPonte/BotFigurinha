@@ -1,21 +1,21 @@
-import axios from 'axios';
-import AdmZip from 'adm-zip';
 import { showConsoleLibraryError } from './general.util.js';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+const execAsync = promisify(exec);
 export async function checkUpdate(currentBotVersion) {
     try {
-        const [currentMajor, currentMinor, currentPatch] = currentBotVersion.split(".");
-        const { data } = await axios.get('https://api.github.com/repos/victorsouzaleal/lbot-whatsapp/releases/latest', { responseType: 'json' });
-        const remoteVersion = data.tag_name;
-        const [remoteMajor, remoteMinor, remotePatch] = remoteVersion.split(".");
+        // Check if there are updates from GitHub repository
+        const { stdout: currentBranch } = await execAsync('git rev-parse --abbrev-ref HEAD');
+        const branch = currentBranch.trim();
+        // Fetch latest changes from remote
+        await execAsync('git fetch origin');
+        // Check if local is behind remote
+        const { stdout: statusOutput } = await execAsync(`git rev-list HEAD...origin/${branch} --count`);
+        const commitsAhead = parseInt(statusOutput.trim());
         let response = {
-            latest: true,
+            latest: commitsAhead === 0,
+            commitsAhead
         };
-        if (Number(currentMajor) == Number(remoteMajor) && Number(currentMinor) == Number(remoteMinor) && Number(currentPatch) < Number(remotePatch)) {
-            response.latest = false;
-        }
-        if (Number(currentMajor) < Number(remoteMajor) || (Number(currentMajor) == Number(remoteMajor) && Number(currentMinor) < Number(remoteMinor))) {
-            response.latest = false;
-        }
         return response;
     }
     catch (err) {
@@ -23,16 +23,30 @@ export async function checkUpdate(currentBotVersion) {
         throw err;
     }
 }
-export async function makeUpdate(path = './') {
+export async function makeUpdate() {
     try {
-        const { data } = await axios.get('https://api.github.com/repos/victorsouzaleal/lbot-whatsapp/releases/latest', { responseType: 'json' });
-        const assetUrl = data.assets[0].browser_download_url;
-        const { data: remoteVersion } = await axios.get(assetUrl, { responseType: 'arraybuffer' });
-        const zipBuffer = Buffer.from(remoteVersion, 'utf-8');
-        const zip = new AdmZip(zipBuffer);
-        zip.extractAllToAsync(path, true, true);
+        // Get current branch
+        const { stdout: currentBranch } = await execAsync('git rev-parse --abbrev-ref HEAD');
+        const branch = currentBranch.trim();
+        // Pull latest changes
+        console.log('🔄 Pulling latest changes from GitHub...');
+        const { stdout: pullOutput } = await execAsync(`git pull origin ${branch}`);
+        console.log(pullOutput);
+        // Check if package.json was updated
+        const { stdout: diffOutput } = await execAsync('git diff HEAD@{1} HEAD --name-only');
+        const filesChanged = diffOutput.split('\n');
+        if (filesChanged.includes('package.json') || filesChanged.includes('yarn.lock')) {
+            console.log('📦 Installing dependencies...');
+            await execAsync('yarn install');
+        }
+        // Rebuild project
+        console.log('🔨 Building project...');
+        await execAsync('yarn build');
+        console.log('✅ Update completed successfully!');
+        return true;
     }
     catch (err) {
+        console.error('❌ Update failed:', err);
         throw err;
     }
 }

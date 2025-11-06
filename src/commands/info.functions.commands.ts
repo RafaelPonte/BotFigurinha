@@ -63,10 +63,10 @@ export async function reportarCommand(client: WASocket, botInfo: Bot, message: M
         throw new Error(infoCommands.reportar.msgs.error)
     }
 
-    admins.forEach(async (admin) => {
+    await Promise.all(admins.map(async (admin) => {
         let replyAdmin = buildText(infoCommands.reportar.msgs.reply_admin, message.pushname, waUtil.removeWhatsappSuffix(message.sender), message.text_command)
         await waUtil.sendText(client, admin.id, replyAdmin)
-    })
+    }))
 
     await waUtil.replyText(client, message.chat_id, infoCommands.reportar.msgs.reply, message.wa_message, {expiration: message.expiration})
 }

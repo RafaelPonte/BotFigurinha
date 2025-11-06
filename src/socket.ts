@@ -39,26 +39,44 @@ export default async function connect(){
             const { connection, qr, receivedPendingNotifications } = connectionState
             let needReconnect = false
 
-            if (!receivedPendingNotifications) {
-                if (qr) {
-                    if (!connectionType) {
-                        console.log(colorText(botTexts.not_connected, '#e0e031'))
-                        connectionType = await askQuestion(botTexts.input_connection_method)
+            // Handle QR code display
+            if (qr) {
+                if (!connectionType) {
+                    console.log(colorText(botTexts.not_connected, '#e0e031'))
+                    connectionType = await askQuestion(botTexts.input_connection_method)
 
-                        if (connectionType == '2') {
-                            connectionPairingCode(client)
-                        } else {
-                            connectionQr(qr) 
-                        }
-                    } else if (connectionType != '2') {
-                        connectionQr(qr) 
+                    if (connectionType == '2') {
+                        connectionPairingCode(client)
+                    } else {
+                        await connectionQr(qr)
                     }
-                } else if (connection == 'connecting'){
-                    console.log(colorText(botTexts.connecting))
-                } else if (connection === 'close'){
-                    needReconnect = await connectionClose(connectionState)
+                } else if (connectionType != '2') {
+                    console.log(colorText('🔄 Novo QR Code gerado (o anterior expirou)', '#ff9800'))
+                    await connectionQr(qr)
                 }
-            } else {
+            }
+
+            // Handle connection states
+            if (connection === 'connecting'){
+                console.log(colorText(botTexts.connecting))
+            } else if (connection === 'open'){
+                // Connection opened successfully
+                if (!isBotReady) {
+                    console.log(colorText('✅ Connected! Initializing bot...', '#4caf50'))
+                    await client.waitForSocketOpen()
+                    connectionOpen(client)
+                    await syncGroupsOnStart(client)
+                    isBotReady = true
+                    await executeEventQueue(client, eventsCache)
+                    console.log(colorText(botTexts.server_started))
+                }
+            } else if (connection === 'close'){
+                needReconnect = await connectionClose(connectionState)
+            }
+
+            // Legacy: handle receivedPendingNotifications for older Baileys behavior
+            if (receivedPendingNotifications && !isBotReady) {
+                console.log(colorText('✅ Connected! Initializing bot...', '#4caf50'))
                 await client.waitForSocketOpen()
                 connectionOpen(client)
                 await syncGroupsOnStart(client)
