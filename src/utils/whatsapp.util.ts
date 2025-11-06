@@ -351,13 +351,24 @@ export async function formatWAMessage(m: WAMessage, group: Group|null, hostId: s
         wa_message: m,
     }
 
+    console.log('[DEBUG FORMAT] formattedMessage created successfully')
+    console.log('[DEBUG FORMAT] isMedia:', formattedMessage.isMedia)
+    console.log('[DEBUG FORMAT] isQuoted:', formattedMessage.isQuoted)
+
     if (formattedMessage.isMedia){
+        console.log('[DEBUG FORMAT] Processing media message')
         const mimetype = (typeof actualMessage[type] != "string" && actualMessage[type] && "mimetype" in actualMessage[type]) ? actualMessage[type].mimetype as string | null : undefined
         const url = (typeof actualMessage[type] != "string" && actualMessage[type] && "url" in actualMessage[type]) ? actualMessage[type].url as string | null : undefined
         const seconds = (typeof actualMessage[type] != "string" && actualMessage[type] && "seconds" in actualMessage[type]) ? actualMessage[type].seconds as number | null : undefined
         const file_length = (typeof actualMessage[type] != "string" && actualMessage[type] && "fileLength" in actualMessage[type]) ? actualMessage[type].fileLength as number | Long | null : undefined
 
-        if (!mimetype || !url || !file_length) return
+        if (!mimetype || !url || !file_length) {
+            console.log('[DEBUG FORMAT] FAIL: Missing media fields')
+            console.log('[DEBUG FORMAT] - mimetype:', !!mimetype)
+            console.log('[DEBUG FORMAT] - url:', !!url)
+            console.log('[DEBUG FORMAT] - file_length:', !!file_length)
+            return
+        }
 
         formattedMessage.media = {
             mimetype,
@@ -369,15 +380,24 @@ export async function formatWAMessage(m: WAMessage, group: Group|null, hostId: s
 
 
     if (formattedMessage.isQuoted){
+        console.log('[DEBUG FORMAT] Processing quoted message')
         const quotedMessage = contextInfo?.quotedMessage
 
-        if (!quotedMessage) return
-    
+        if (!quotedMessage) {
+            console.log('[DEBUG FORMAT] FAIL: No quotedMessage in contextInfo')
+            return
+        }
+
         const typeQuoted = getContentType(quotedMessage)
         const quotedStanzaId = contextInfo.stanzaId ?? undefined
         const senderQuoted = contextInfo.participant || contextInfo.remoteJid
 
-        if (!typeQuoted || !senderQuoted ) return
+        if (!typeQuoted || !senderQuoted ) {
+            console.log('[DEBUG FORMAT] FAIL: Invalid quoted message')
+            console.log('[DEBUG FORMAT] - typeQuoted:', typeQuoted)
+            console.log('[DEBUG FORMAT] - senderQuoted:', senderQuoted)
+            return
+        }
 
         const captionQuoted = (typeof quotedMessage[typeQuoted] != "string" && quotedMessage[typeQuoted] && "caption" in quotedMessage[typeQuoted]) ? quotedMessage[typeQuoted].caption as string | null : undefined
         const quotedWAMessage = generateWAMessageFromContent(formattedMessage.chat_id, quotedMessage, { userJid: senderQuoted, messageId: quotedStanzaId })
@@ -393,12 +413,19 @@ export async function formatWAMessage(m: WAMessage, group: Group|null, hostId: s
         }
 
         if (formattedMessage.quotedMessage?.isMedia){
+            console.log('[DEBUG FORMAT] Processing quoted media')
             const urlQuoted = (typeof quotedMessage[typeQuoted] != "string" && quotedMessage[typeQuoted] && "url" in quotedMessage[typeQuoted]) ? quotedMessage[typeQuoted].url as string | null : undefined
             const mimetypeQuoted = (typeof quotedMessage[typeQuoted] != "string" && quotedMessage[typeQuoted] && "mimetype" in quotedMessage[typeQuoted]) ? quotedMessage[typeQuoted].mimetype as string | null : undefined
             const fileLengthQuoted = (typeof quotedMessage[typeQuoted] != "string" && quotedMessage[typeQuoted] && "fileLength" in quotedMessage[typeQuoted]) ? quotedMessage[typeQuoted].fileLength as number| Long | null : undefined
             const secondsQuoted = (typeof quotedMessage[typeQuoted] != "string" && quotedMessage[typeQuoted] && "seconds" in quotedMessage[typeQuoted]) ? quotedMessage[typeQuoted].seconds as number| null : undefined
-            
-            if (!urlQuoted || !mimetypeQuoted || !fileLengthQuoted) return
+
+            if (!urlQuoted || !mimetypeQuoted || !fileLengthQuoted) {
+                console.log('[DEBUG FORMAT] FAIL: Missing quoted media fields')
+                console.log('[DEBUG FORMAT] - urlQuoted:', !!urlQuoted)
+                console.log('[DEBUG FORMAT] - mimetypeQuoted:', !!mimetypeQuoted)
+                console.log('[DEBUG FORMAT] - fileLengthQuoted:', !!fileLengthQuoted)
+                return
+            }
 
             formattedMessage.quotedMessage.media = {
                 url: urlQuoted,
@@ -407,9 +434,10 @@ export async function formatWAMessage(m: WAMessage, group: Group|null, hostId: s
                 seconds: secondsQuoted || undefined,
             }
         }
-        
+
     }
 
+    console.log('[DEBUG FORMAT] SUCCESS! Returning formatted message')
     return formattedMessage
 }
 
