@@ -258,11 +258,19 @@ export async function formatWAMessage(m: WAMessage, group: Group|null, hostId: s
         return
     }
 
-    const type = getContentType(m.message)
+    // Baileys 7 Fix: Handle ephemeral (temporary) messages
+    // When a group has temporary messages enabled, messages come wrapped in ephemeralMessage
+    let actualMessage = m.message
+    if (m.message.ephemeralMessage?.message) {
+        console.log('[DEBUG FORMAT] Unwrapping ephemeral message')
+        actualMessage = m.message.ephemeralMessage.message
+    }
+
+    const type = getContentType(actualMessage)
     console.log('[DEBUG FORMAT] Message type:', type)
     console.log('[DEBUG FORMAT] Is allowed type:', type ? isAllowedType(type) : false)
 
-    if (!type || !isAllowedType(type) || !m.message[type]) {
+    if (!type || !isAllowedType(type) || !actualMessage[type]) {
         console.log('[DEBUG FORMAT] FAIL: Invalid type or not allowed')
         return
     }
@@ -270,7 +278,7 @@ export async function formatWAMessage(m: WAMessage, group: Group|null, hostId: s
     const groupController = new GroupController()
     const userController = new UserController()
     const botAdmins = await userController.getAdmins()
-    const contextInfo : proto.IContextInfo | undefined  = (typeof m.message[type] != "string" && m.message[type] && "contextInfo" in m.message[type]) ? m.message[type].contextInfo as proto.IContextInfo: undefined
+    const contextInfo : proto.IContextInfo | undefined  = (typeof actualMessage[type] != "string" && actualMessage[type] && "contextInfo" in actualMessage[type]) ? actualMessage[type].contextInfo as proto.IContextInfo: undefined
     const isQuoted = (contextInfo?.quotedMessage) ? true : false
     const isGroupMsg = m.key.remoteJid?.includes("@g.us") ?? false
 
@@ -295,8 +303,8 @@ export async function formatWAMessage(m: WAMessage, group: Group|null, hostId: s
     console.log('[DEBUG FORMAT] Extracted sender:', sender)
 
     const pushName = m.pushName
-    const body =  m.message.conversation ||  m.message.extendedTextMessage?.text || undefined
-    const caption = (typeof m.message[type] != "string" && m.message[type] && "caption" in m.message[type]) ? m.message[type].caption as string | null: undefined
+    const body =  actualMessage.conversation ||  actualMessage.extendedTextMessage?.text || undefined
+    const caption = (typeof actualMessage[type] != "string" && actualMessage[type] && "caption" in actualMessage[type]) ? actualMessage[type].caption as string | null: undefined
     const text =  caption || body || ''
     const [command, ...args] = text.trim().split(" ")
     const message_id = m.key.id
@@ -326,7 +334,7 @@ export async function formatWAMessage(m: WAMessage, group: Group|null, hostId: s
         chat_id,
         expiration : contextInfo?.expiration || undefined,
         pushname: pushName || '',
-        body: m.message.conversation || m.message.extendedTextMessage?.text || '',
+        body: actualMessage.conversation || actualMessage.extendedTextMessage?.text || '',
         caption : caption || '',
         mentioned: contextInfo?.mentionedJid || [],
         text_command: args?.join(" ").trim() || '',
@@ -344,10 +352,10 @@ export async function formatWAMessage(m: WAMessage, group: Group|null, hostId: s
     }
 
     if (formattedMessage.isMedia){
-        const mimetype = (typeof m.message[type] != "string" && m.message[type] && "mimetype" in m.message[type]) ? m.message[type].mimetype as string | null : undefined
-        const url = (typeof m.message[type] != "string" && m.message[type] && "url" in m.message[type]) ? m.message[type].url as string | null : undefined
-        const seconds = (typeof m.message[type] != "string" && m.message[type] && "seconds" in m.message[type]) ? m.message[type].seconds as number | null : undefined
-        const file_length = (typeof m.message[type] != "string" && m.message[type] && "fileLength" in m.message[type]) ? m.message[type].fileLength as number | Long | null : undefined
+        const mimetype = (typeof actualMessage[type] != "string" && actualMessage[type] && "mimetype" in actualMessage[type]) ? actualMessage[type].mimetype as string | null : undefined
+        const url = (typeof actualMessage[type] != "string" && actualMessage[type] && "url" in actualMessage[type]) ? actualMessage[type].url as string | null : undefined
+        const seconds = (typeof actualMessage[type] != "string" && actualMessage[type] && "seconds" in actualMessage[type]) ? actualMessage[type].seconds as number | null : undefined
+        const file_length = (typeof actualMessage[type] != "string" && actualMessage[type] && "fileLength" in actualMessage[type]) ? actualMessage[type].fileLength as number | Long | null : undefined
 
         if (!mimetype || !url || !file_length) return
 
