@@ -1,4 +1,4 @@
-import { makeWASocket } from 'baileys';
+import { makeWASocket, fetchLatestBaileysVersion } from 'baileys';
 import NodeCache from 'node-cache';
 import configSocket from './config.js';
 import { BotController } from './controllers/bot.controller.js';
@@ -20,9 +20,9 @@ const eventsCache = new NodeCache();
 const messagesCache = new NodeCache({ stdTTL: 5 * 60, useClones: false });
 export default async function connect() {
     const { state, saveCreds } = await useNeDBAuthState();
-    // Force specific working version instead of fetching latest (which may be rejected)
-    const version = [2, 2413, 1];
-    console.log(colorText(`🔧 Using WhatsApp Web version: ${version.join('.')}`, '#2196f3'));
+    // Fetch latest version from Baileys (auto-detect best version)
+    const { version, isLatest } = await fetchLatestBaileysVersion();
+    console.log(colorText(`🔧 WhatsApp Web version: ${version.join('.')} (Latest: ${isLatest})`, '#2196f3'));
     const client = makeWASocket(configSocket(state, retryCache, version, messagesCache));
     let connectionType = null;
     let isBotReady = false;

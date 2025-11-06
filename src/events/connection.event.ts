@@ -85,12 +85,13 @@ export async function connectionClose(connectionState : Partial<ConnectionState>
                 }
                 showConsoleError(new Error(botTexts.disconnected.logout), 'CONNECTION')
             } else if (errorCode == 405) {
-                console.log(colorText('\n⚠️  ERRO 405 - Sessão inválida detectada!', '#ff5722'))
-                console.log(colorText('🧹 Limpando todas as credenciais antigas...', '#ff9800'))
+                console.log(colorText('\n⚠️  ERRO 405 - Método não permitido', '#ff5722'))
+                console.log(colorText(`🔍 Error details: ${JSON.stringify(lastDisconnect?.error)}`, '#ff9800'))
+                console.log(colorText('\n💡 ERRO 405 geralmente significa RATE LIMIT do WhatsApp!', '#e0e031'))
+                console.log(colorText('⏰ Você precisa AGUARDAR 15-30 MINUTOS antes de tentar novamente', '#e0e031'))
+                console.log(colorText('📱 DICA: Enquanto espera, vá no WhatsApp e desconecte TODOS os dispositivos\n', '#2196f3'))
                 await cleanCreds()
-                console.log(colorText('\n✅ Limpeza completa! Por favor, REINICIE o bot manualmente.', '#4caf50'))
-                console.log(colorText('💡 Pressione Ctrl+C e depois execute: yarn start\n', '#2196f3'))
-                needReconnect = false  // DO NOT auto-reconnect on 405, force manual restart
+                needReconnect = false  // DO NOT auto-reconnect on 405
             } else if (errorCode == DisconnectReason?.restartRequired){
                 showConsoleError(new Error(botTexts.disconnected.restart), 'CONNECTION')
                 await new Promise(resolve => setTimeout(resolve, 1000))
