@@ -324,10 +324,20 @@ export async function formatWAMessage(m, group, hostId) {
     }
     if (formattedMessage.isQuoted) {
         console.log('[DEBUG FORMAT] Processing quoted message');
-        const quotedMessage = contextInfo?.quotedMessage;
+        if (!contextInfo) {
+            console.log('[DEBUG FORMAT] FAIL: No contextInfo');
+            return;
+        }
+        let quotedMessage = contextInfo.quotedMessage;
         if (!quotedMessage) {
             console.log('[DEBUG FORMAT] FAIL: No quotedMessage in contextInfo');
             return;
+        }
+        // Baileys 7 Fix: Unwrap ephemeral quoted messages too
+        // If the original message is ephemeral, the quoted message also comes wrapped
+        if (quotedMessage.ephemeralMessage?.message) {
+            console.log('[DEBUG FORMAT] Unwrapping ephemeral QUOTED message');
+            quotedMessage = quotedMessage.ephemeralMessage.message;
         }
         const typeQuoted = getContentType(quotedMessage);
         const quotedStanzaId = contextInfo.stanzaId ?? undefined;
