@@ -55,7 +55,7 @@
     "@vitalets/google-translate-api": "^9.2.1",
     "adm-zip": "^0.5.16",
     "axios": "^1.12.2",
-    "baileys": "^6.7.20",
+    "baileys": "7.0.0-rc.6",
     "canvas": "^3.2.0",
     "chalk": "^4.1.2",
     "emoji-mixer": "^1.2.2",
