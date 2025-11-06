@@ -13,7 +13,7 @@ export default function configSocket (state : AuthenticationState, retryCache : 
         markOnlineOnConnect: true,
         qrTimeout: 60000, // 60 seconds timeout for QR code
         printQRInTerminal: false, // We handle QR display manually
-        browser: Browsers.appropriate('Desktop'),  // Better compatibility
+        browser: Browsers.macOS('Desktop'),  // More reliable browser identification
         logger: pino({level: 'silent'}),
         shouldIgnoreJid: jid => isJidBroadcast(jid) || jid?.endsWith('@newsletter'),
         getMessage: async (key) => {
