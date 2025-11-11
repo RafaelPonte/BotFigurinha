@@ -10,6 +10,8 @@ import { commandInvoker } from '../helpers/command.invoker.helper.js'
 
 export async function messageReceived (client: WASocket, messages : {messages: WAMessage[], requestId?: string, type: MessageUpsertType}, botInfo : Bot, messageCache: NodeCache){
     try{
+        console.log('📩 MESSAGE RECEIVED - Type:', messages.type, 'From:', messages.messages[0].key.remoteJid)
+
         if (messages.messages[0].key.fromMe) {
             storeMessageOnCache(messages.messages[0], messageCache)
             return

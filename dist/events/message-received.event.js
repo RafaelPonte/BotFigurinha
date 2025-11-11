@@ -6,6 +6,7 @@ import { storeMessageOnCache, formatWAMessage } from '../utils/whatsapp.util.js'
 import { commandInvoker } from '../helpers/command.invoker.helper.js';
 export async function messageReceived(client, messages, botInfo, messageCache) {
     try {
+        console.log('📩 MESSAGE RECEIVED - Type:', messages.type, 'From:', messages.messages[0].key.remoteJid);
         if (messages.messages[0].key.fromMe) {
             storeMessageOnCache(messages.messages[0], messageCache);
             return;
